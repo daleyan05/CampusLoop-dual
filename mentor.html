@@ -10,10 +10,52 @@
   <body>
     <header class="dispatch-topbar">
       <a class="dispatch-brand" href="index.html"><span>CL</span><strong>CampusLoop Dispatch</strong></a>
-      <div class="dispatch-role-badge mentor">辅导员入口</div>
+      <div class="manager-header-actions">
+        <div class="dispatch-role-badge mentor">辅导员入口</div>
+        <button class="dispatch-secondary manager-logout" id="mentorLogoutButton" type="button" hidden>退出登录</button>
+      </div>
     </header>
 
     <main class="dispatch-shell">
+      <section class="mentor-auth-gate" id="mentorAuthGate">
+        <div class="mentor-auth-intro">
+          <p class="dispatch-eyebrow">Verified mentor access</p>
+          <h1>注册并完成实名认证后接单</h1>
+          <p>新辅导员须提交清晰正面人脸照和身份证照片。店长核验人脸与身份证为同一人并通过认证后，账号才能登录接单。</p>
+          <div class="privacy-card">
+            <strong>隐私与演示说明</strong>
+            <span>当前为本地静态演示，资料仅保存在当前浏览器。请勿上传真实身份证；正式上线须接入加密后台与合规实名认证服务。</span>
+          </div>
+        </div>
+        <div class="mentor-auth-grid">
+          <form class="dispatch-panel dispatch-form" id="mentorLoginForm">
+            <div><p class="dispatch-eyebrow">Mentor login</p><h2>辅导员登录</h2></div>
+            <label><span>登录账号</span><input id="mentorLoginAccount" type="text" required autocomplete="username" placeholder="手机号或邮箱" /></label>
+            <label><span>密码</span><input id="mentorLoginPassword" type="password" required autocomplete="current-password" /></label>
+            <p class="dispatch-message" id="mentorLoginMessage" aria-live="polite"></p>
+            <button class="dispatch-primary" type="submit">认证账号登录</button>
+          </form>
+
+          <form class="dispatch-panel dispatch-form" id="mentorRegisterForm">
+            <div><p class="dispatch-eyebrow">New mentor</p><h2>注册与实名认证</h2></div>
+            <div class="form-grid two">
+              <label><span>真实姓名</span><input id="mentorRegisterName" type="text" required autocomplete="name" /></label>
+              <label><span>手机号或邮箱（登录账号）</span><input id="mentorRegisterAccount" type="text" required autocomplete="username" /></label>
+              <label><span>设置密码</span><input id="mentorRegisterPassword" type="password" required minlength="8" autocomplete="new-password" placeholder="至少 8 位" /></label>
+              <label><span>确认密码</span><input id="mentorRegisterConfirmPassword" type="password" required minlength="8" autocomplete="new-password" /></label>
+            </div>
+            <div class="form-grid two">
+              <label><span>清晰正面人脸照</span><input id="mentorFacePhoto" type="file" required accept="image/*" /><small class="mentor-proof-state">正脸无遮挡，图片不超过 700KB。</small></label>
+              <label><span>身份证照片</span><input id="mentorIdPhoto" type="file" required accept="image/*" /><small class="mentor-proof-state">须能清楚辨认照片，图片不超过 700KB。</small></label>
+            </div>
+            <label class="consent-row"><input id="mentorIdentityConsent" type="checkbox" required /><span>我确认人脸照为本人，且与身份证照片中的人员一致，并同意提交店长审核。</span></label>
+            <p class="dispatch-message" id="mentorRegisterMessage" aria-live="polite"></p>
+            <button class="dispatch-primary" type="submit">提交注册与认证</button>
+          </form>
+        </div>
+      </section>
+
+      <div id="mentorApp" hidden>
       <section class="dispatch-hero mentor-hero">
         <div>
           <p class="dispatch-eyebrow">Mentor workspace</p>
@@ -32,10 +74,11 @@
           <span class="step-badge" id="mentorProfileState">尚未登记</span>
         </div>
         <form id="mentorProfileForm">
-          <div class="form-grid three">
+          <div class="form-grid two">
             <label><span>显示名称</span><input id="mentorDisplayName" type="text" required placeholder="例如：Dale 老师" /></label>
-            <label><span>平台联系方式</span><input id="mentorContact" type="text" required placeholder="仅店长可见" /></label>
-            <label><span>每小时价格</span><input id="mentorRate" type="text" required placeholder="例如：£28/小时" /></label>
+            <label><span>每小时价格（人民币）</span><input id="mentorRate" type="text" required placeholder="例如：200 元/小时" /></label>
+            <label><span>平台认证电话</span><input id="mentorPhone" type="tel" required placeholder="仅店长可见" /></label>
+            <label><span>平台认证微信</span><input id="mentorWechat" type="text" required placeholder="仅店长可见" /></label>
           </div>
           <div class="form-grid two">
             <label>
@@ -44,7 +87,8 @@
                 <option value="">请选择专业</option>
                 <option>商科与管理</option><option>会计与金融</option><option>经济学</option><option>计算机科学</option>
                 <option>数据科学与统计</option><option>工程学</option><option>教育学</option><option>心理学</option>
-                <option>法律</option><option>医学与健康</option><option>文学与语言</option><option>艺术与设计</option><option>其他</option>
+                <option>法律</option><option>医学与健康</option><option>文学与语言</option><option>艺术与设计</option>
+                <option>传媒</option><option>音乐专业</option><option>其他</option>
               </select>
             </label>
             <label><span>可辅导的具体科目</span><input id="mentorSubjects" type="text" required placeholder="用逗号分隔，例如：公司金融, APA, SPSS" /></label>
@@ -55,6 +99,11 @@
             <label><span>地区 / 时区</span><input id="mentorDispatchArea" type="text" required placeholder="例如：GMT" /></label>
           </div>
           <label><span>个人简介</span><textarea id="mentorBio" rows="3" required placeholder="学历背景、擅长课程、可接单时间。不要填写公开联系方式。"></textarea></label>
+          <label>
+            <span>上传证明（教师资格证、学生证等）</span>
+            <input id="mentorProof" type="file" accept="image/*,.pdf,application/pdf" />
+            <small class="mentor-proof-state" id="mentorProofState">支持图片或 PDF，文件不超过 1MB；证明仅店长端可查看。</small>
+          </label>
           <p class="dispatch-message" id="mentorProfileMessage" aria-live="polite"></p>
           <button class="dispatch-primary" type="submit">保存辅导员资料</button>
         </form>
@@ -70,6 +119,7 @@
           <div class="dispatch-list" id="mentorAssignmentList"></div>
         </section>
       </section>
+      </div>
     </main>
     <script src="dispatch.js"></script>
   </body>

@@ -204,11 +204,20 @@ input, select, textarea {
   outline: none;
 }
 input, select { min-height: 44px; padding: 0 12px; }
+input[type="file"] { padding: 8px 10px; }
 textarea { padding: 12px; resize: vertical; line-height: 1.6; }
 input:focus, select:focus, textarea:focus { border-color: var(--student); box-shadow: 0 0 0 3px rgba(47, 125, 104, 0.12); }
 html[data-dispatch-role="mentor"] input:focus,
 html[data-dispatch-role="mentor"] select:focus,
 html[data-dispatch-role="mentor"] textarea:focus { border-color: var(--mentor); box-shadow: 0 0 0 3px rgba(49, 95, 135, 0.12); }
+.mentor-proof-state { color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.5; }
+
+.mentor-auth-gate { padding: clamp(34px, 6vw, 72px) clamp(18px, 5vw, 68px); }
+.mentor-auth-intro { display: grid; gap: 16px; max-width: 920px; margin-bottom: 24px; }
+.mentor-auth-intro h1 { margin: 0; font-size: clamp(36px, 5vw, 64px); line-height: 1; letter-spacing: -0.04em; }
+.mentor-auth-intro > p { margin: 0; color: var(--muted); line-height: 1.7; }
+.mentor-auth-grid { display: grid; grid-template-columns: minmax(280px, 0.7fr) minmax(0, 1.3fr); gap: 18px; align-items: start; }
+.mentor-auth-grid h2 { margin: 0; font-size: 30px; }
 
 .consent-row { grid-template-columns: auto minmax(0, 1fr); align-items: start; font-weight: 600; line-height: 1.5; }
 .consent-row input { width: 18px; height: 18px; min-height: 0; margin: 2px 0 0; }
@@ -286,6 +295,7 @@ html[data-dispatch-role="manager"] .dispatch-primary { background: var(--manager
 .status-assigned { background: #f0e9f4; color: #724388; }
 .status-accepted { background: #e6f4ed; color: #216b54; }
 .status-completed { background: #e8ecef; color: #4e5966; }
+.status-rejected { background: #fff0ef; color: var(--danger); }
 .matching-score { color: var(--student); font-size: 13px; font-weight: 900; }
 .privacy-mask { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 800; }
 .privacy-mask::before { content: "🔒"; }
@@ -309,6 +319,7 @@ html[data-dispatch-role="manager"] .dispatch-primary { background: var(--manager
 .manager-stats span { color: var(--muted); font-size: 13px; font-weight: 800; }
 .manager-stats strong { align-self: end; color: var(--manager); font-size: 40px; line-height: 1; }
 .manager-control-panel { margin: 0 clamp(18px, 5vw, 68px) 18px; }
+.manager-verification-panel { margin: 0 clamp(18px, 5vw, 68px) 18px; }
 .manager-filters { display: grid; grid-template-columns: minmax(220px, 1fr) 150px; gap: 10px; width: min(100%, 560px); }
 .manager-request-list { gap: 16px; }
 .manager-order { border-left: 4px solid var(--manager); }
@@ -339,6 +350,13 @@ html[data-dispatch-role="manager"] .dispatch-primary { background: var(--manager
 .mentor-resource-card p { margin: 0; color: var(--muted); line-height: 1.55; }
 .mentor-contact { padding-top: 10px; border-top: 1px solid var(--line); color: var(--manager); font-size: 13px; font-weight: 900; }
 
+.verification-card { border-left: 4px solid var(--manager); }
+.verification-photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.verification-photo { display: grid; gap: 8px; margin: 0; }
+.verification-photo img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border: 1px solid var(--line); border-radius: 8px; background: #eef2f4; }
+.verification-photo figcaption { color: var(--muted); font-size: 12px; font-weight: 800; }
+.verification-warning { padding: 12px; border-radius: 8px; background: #fff8e8; color: #855b18; font-size: 13px; font-weight: 800; line-height: 1.5; }
+
 .manager-security-panel { margin: 18px clamp(18px, 5vw, 68px) 0; }
 .manager-password-form {
   display: grid;
@@ -349,7 +367,7 @@ html[data-dispatch-role="manager"] .dispatch-primary { background: var(--manager
 .manager-password-form .dispatch-message { grid-column: 1 / -1; }
 
 @media (max-width: 1050px) {
-  .dispatch-hero, .student-grid, .mentor-grid, .manager-order-grid { grid-template-columns: 1fr; }
+  .dispatch-hero, .student-grid, .mentor-grid, .manager-order-grid, .mentor-auth-grid { grid-template-columns: 1fr; }
   .manager-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mentor-directory { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -357,7 +375,7 @@ html[data-dispatch-role="manager"] .dispatch-primary { background: var(--manager
 @media (max-width: 720px) {
   .dispatch-hero { padding-top: 34px; }
   .dispatch-hero h1 { font-size: clamp(38px, 12vw, 58px); }
-  .form-grid.two, .form-grid.three, .manager-filters, .assignment-controls, .mentor-directory, .manager-stats, .manager-password-form { grid-template-columns: 1fr; }
+  .form-grid.two, .form-grid.three, .manager-filters, .assignment-controls, .mentor-directory, .manager-stats, .manager-password-form, .verification-photos { grid-template-columns: 1fr; }
   .panel-heading { flex-direction: column; }
   .step-badge { white-space: normal; }
   .dispatch-topbar { align-items: flex-start; }

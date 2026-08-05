@@ -8,6 +8,8 @@ const dispatchStorageKeys = {
   mentors: "campusLoopDispatchMentors",
   mentorContacts: "campusLoopDispatchMentorContacts",
   mentorIdentity: "campusLoopDispatchMentorIdentity",
+  mentorAccounts: "campusLoopMentorAccounts",
+  mentorAuthSession: "campusLoopMentorAuthSession",
   managerCredential: "campusLoopManagerCredential",
   managerActiveSession: "campusLoopManagerActiveSession",
   managerTabSession: "campusLoopManagerTabSession"
@@ -111,6 +113,14 @@ function saveDispatchMentors(mentors) {
   writeDispatchStorage(dispatchStorageKeys.mentors, mentors);
 }
 
+function getMentorAccounts() {
+  return readDispatchStorage(dispatchStorageKeys.mentorAccounts, []);
+}
+
+function saveMentorAccounts(accounts) {
+  writeDispatchStorage(dispatchStorageKeys.mentorAccounts, accounts);
+}
+
 function makeDispatchId(prefix) {
   const timePart = Date.now().toString(36).toUpperCase();
   const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -128,6 +138,53 @@ function escapeDispatchHtml(value) {
 
 function normalizeDispatchText(value) {
   return String(value || "").trim().toLocaleLowerCase("zh-CN");
+}
+
+function normalizeRmbRate(value) {
+  const rate = String(value || "").trim();
+  if (!rate || /元|人民币|￥|¥/.test(rate)) return rate;
+  return `${rate} 元/小时`;
+}
+
+function formatMentorContact(contact = {}) {
+  const details = [];
+  if (contact.phone) details.push(`认证电话：${contact.phone}`);
+  if (contact.wechat) details.push(`认证微信：${contact.wechat}`);
+  return details.join(" · ") || contact.contact || "未记录";
+}
+
+function readMentorProof(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) return resolve(null);
+    if (file.size > 1024 * 1024) return reject(new Error("证明文件不能超过 1MB。"));
+    if (file.type !== "application/pdf" && !file.type.startsWith("image/")) {
+      return reject(new Error("证明文件仅支持图片或 PDF。"));
+    }
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve({
+      proofName: file.name,
+      proofType: file.type,
+      proofDataUrl: String(reader.result || "")
+    }));
+    reader.addEventListener("error", () => reject(new Error("证明文件读取失败，请重新选择。")));
+    reader.readAsDataURL(file);
+  });
+}
+
+function readVerificationImage(file, label) {
+  return new Promise((resolve, reject) => {
+    if (!file) return reject(new Error(`请上传${label}。`));
+    if (!file.type.startsWith("image/")) return reject(new Error(`${label}仅支持图片格式。`));
+    if (file.size > 700 * 1024) return reject(new Error(`${label}不能超过 700KB。`));
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve({
+      name: file.name,
+      type: file.type,
+      dataUrl: String(reader.result || "")
+    }));
+    reader.addEventListener("error", () => reject(new Error(`${label}读取失败，请重新选择。`)));
+    reader.readAsDataURL(file);
+  });
 }
 
 function formatDispatchDate(value) {
@@ -189,8 +246,11 @@ function matchingScore(request, mentor) {
 
 function matchingMentorsForRequest(request) {
   const appliedIds = new Set(request.applications || []);
+  const approvedMentorIds = new Set(getMentorAccounts()
+    .filter((account) => account.verificationStatus === "approved" && account.mentorId)
+    .map((account) => account.mentorId));
   return getDispatchMentors()
-    .filter((mentor) => mentor.active !== false)
+    .filter((mentor) => mentor.active !== false && approvedMentorIds.has(mentor.id))
     .map((mentor) => ({ mentor, score: matchingScore(request, mentor), applied: appliedIds.has(mentor.id) }))
     .sort((a, b) => Number(b.applied) - Number(a.applied) || b.score - a.score || a.mentor.name.localeCompare(b.mentor.name, "zh-CN"));
 }
@@ -332,13 +392,125 @@ function mentorOrderMarkup(request, mentor, mode) {
     </article>`;
 }
 
-function initMentorDispatch() {
+function initMentorAuth() {
+  const authGate = document.querySelector("#mentorAuthGate");
+  const mentorApp = document.querySelector("#mentorApp");
+  const loginForm = document.querySelector("#mentorLoginForm");
+  const registerForm = document.querySelector("#mentorRegisterForm");
+  const loginMessage = document.querySelector("#mentorLoginMessage");
+  const registerMessage = document.querySelector("#mentorRegisterMessage");
+  const logoutButton = document.querySelector("#mentorLogoutButton");
+  let dispatchInitialized = false;
+
+  function showMentorApp(account) {
+    authGate.hidden = true;
+    mentorApp.hidden = false;
+    logoutButton.hidden = false;
+    if (!dispatchInitialized) {
+      initMentorDispatch(account.id);
+      dispatchInitialized = true;
+    }
+  }
+
+  const sessionAccountId = sessionStorage.getItem(dispatchStorageKeys.mentorAuthSession);
+  const sessionAccount = getMentorAccounts().find((account) => account.id === sessionAccountId);
+  if (sessionAccount?.verificationStatus === "approved") showMentorApp(sessionAccount);
+  else sessionStorage.removeItem(dispatchStorageKeys.mentorAuthSession);
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const submitButton = loginForm.querySelector('button[type="submit"]');
+    const accountValue = normalizeDispatchText(document.querySelector("#mentorLoginAccount").value);
+    const password = document.querySelector("#mentorLoginPassword").value;
+    const account = getMentorAccounts().find((item) => item.loginAccount === accountValue);
+    if (!account || (await hashManagerPassword(password, account.passwordSalt)) !== account.passwordHash) {
+      showDispatchMessage(loginMessage, "账号或密码不正确。");
+      return;
+    }
+    if (account.verificationStatus === "pending") {
+      showDispatchMessage(loginMessage, "实名认证正在等待店长审核，通过后才能登录接单。");
+      return;
+    }
+    if (account.verificationStatus === "rejected") {
+      showDispatchMessage(loginMessage, "实名认证未通过，请联系平台重新提交清晰、相符的认证照片。");
+      return;
+    }
+
+    submitButton.disabled = true;
+    sessionStorage.setItem(dispatchStorageKeys.mentorAuthSession, account.id);
+    document.querySelector("#mentorLoginPassword").value = "";
+    showDispatchMessage(loginMessage, "认证通过，登录成功。", true);
+    showMentorApp(account);
+    submitButton.disabled = false;
+  });
+
+  registerForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const submitButton = registerForm.querySelector('button[type="submit"]');
+    const displayName = document.querySelector("#mentorRegisterName").value.trim();
+    const loginAccount = normalizeDispatchText(document.querySelector("#mentorRegisterAccount").value);
+    const password = document.querySelector("#mentorRegisterPassword").value;
+    const confirmPassword = document.querySelector("#mentorRegisterConfirmPassword").value;
+    if (getMentorAccounts().some((account) => account.loginAccount === loginAccount)) {
+      showDispatchMessage(registerMessage, "该手机号或邮箱已经注册，请直接登录。");
+      return;
+    }
+    if (password.length < 8) {
+      showDispatchMessage(registerMessage, "密码至少需要 8 位。");
+      return;
+    }
+    if (password !== confirmPassword) {
+      showDispatchMessage(registerMessage, "两次输入的密码不一致。");
+      return;
+    }
+
+    submitButton.disabled = true;
+    try {
+      const [facePhoto, idPhoto] = await Promise.all([
+        readVerificationImage(document.querySelector("#mentorFacePhoto").files[0], "清晰正面人脸照"),
+        readVerificationImage(document.querySelector("#mentorIdPhoto").files[0], "身份证照片")
+      ]);
+      const passwordSalt = createManagerToken();
+      const accounts = getMentorAccounts();
+      accounts.unshift({
+        id: makeDispatchId("MACC"),
+        displayName,
+        loginAccount,
+        passwordSalt,
+        passwordHash: await hashManagerPassword(password, passwordSalt),
+        verificationStatus: "pending",
+        facePhoto,
+        idPhoto,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      saveMentorAccounts(accounts);
+      registerForm.reset();
+      showDispatchMessage(registerMessage, "注册资料已提交。店长核验人脸照与身份证照片一致并通过后，即可登录。", true);
+    } catch (error) {
+      const message = error?.name === "QuotaExceededError"
+        ? "认证照片占用空间过大，请压缩图片后重新提交。"
+        : error.message;
+      showDispatchMessage(registerMessage, message);
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+
+  logoutButton.addEventListener("click", () => {
+    sessionStorage.removeItem(dispatchStorageKeys.mentorAuthSession);
+    window.location.reload();
+  });
+}
+
+function initMentorDispatch(accountId) {
   const profileForm = document.querySelector("#mentorProfileForm");
   const profileMessage = document.querySelector("#mentorProfileMessage");
   const profileState = document.querySelector("#mentorProfileState");
   const openList = document.querySelector("#mentorOpenList");
   const assignmentList = document.querySelector("#mentorAssignmentList");
-  let mentorId = readDispatchStorage(dispatchStorageKeys.mentorIdentity, "");
+  const mentorAccount = getMentorAccounts().find((account) => account.id === accountId);
+  let mentorId = mentorAccount?.mentorId || "";
 
   function currentMentor() {
     return getDispatchMentors().find((mentor) => mentor.id === mentorId) || null;
@@ -346,10 +518,15 @@ function initMentorDispatch() {
 
   function populateMentorForm() {
     const mentor = currentMentor();
-    if (!mentor) return;
+    if (!mentor) {
+      document.querySelector("#mentorDisplayName").value = mentorAccount?.displayName || "";
+      return;
+    }
     const contacts = readDispatchStorage(dispatchStorageKeys.mentorContacts, {});
+    const contact = contacts[mentor.id] || {};
     document.querySelector("#mentorDisplayName").value = mentor.name || "";
-    document.querySelector("#mentorContact").value = contacts[mentor.id]?.contact || "";
+    document.querySelector("#mentorPhone").value = contact.phone || contact.contact || "";
+    document.querySelector("#mentorWechat").value = contact.wechat || "";
     document.querySelector("#mentorRate").value = mentor.rate || "";
     document.querySelector("#mentorMajor").value = mentor.major || "";
     document.querySelector("#mentorSubjects").value = mentor.subjects || "";
@@ -357,6 +534,9 @@ function initMentorDispatch() {
     document.querySelector("#mentorDispatchCity").value = mentor.city || "";
     document.querySelector("#mentorDispatchArea").value = mentor.area || "";
     document.querySelector("#mentorBio").value = mentor.bio || "";
+    document.querySelector("#mentorProofState").textContent = contact.proofName
+      ? `已上传：${contact.proofName}；重新选择文件可替换。`
+      : "支持图片或 PDF，文件不超过 1MB；证明仅店长端可查看。";
   }
 
   function renderMentorOrders() {
@@ -377,15 +557,34 @@ function initMentorDispatch() {
       : '<p class="empty-dispatch">店长尚未向你派单。</p>';
   }
 
-  profileForm.addEventListener("submit", (event) => {
+  profileForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const submitButton = profileForm.querySelector('button[type="submit"]');
     const mentors = getDispatchMentors();
+    const contacts = readDispatchStorage(dispatchStorageKeys.mentorContacts, {});
+    const existingContact = mentorId ? contacts[mentorId] || {} : {};
+    const proofFile = document.querySelector("#mentorProof").files[0] || null;
+    if (!proofFile && !existingContact.proofDataUrl) {
+      showDispatchMessage(profileMessage, "请上传教师资格证、学生证等证明文件。");
+      return;
+    }
+
+    submitButton.disabled = true;
+    let proof = null;
+    try {
+      proof = await readMentorProof(proofFile);
+    } catch (error) {
+      showDispatchMessage(profileMessage, error.message);
+      submitButton.disabled = false;
+      return;
+    }
+
     if (!mentorId) mentorId = makeDispatchId("MTR");
     const existingIndex = mentors.findIndex((mentor) => mentor.id === mentorId);
     const mentor = {
       id: mentorId,
       name: document.querySelector("#mentorDisplayName").value.trim(),
-      rate: document.querySelector("#mentorRate").value.trim(),
+      rate: normalizeRmbRate(document.querySelector("#mentorRate").value),
       major: document.querySelector("#mentorMajor").value,
       subjects: document.querySelector("#mentorSubjects").value.trim(),
       country: document.querySelector("#mentorDispatchCountry").value.trim(),
@@ -400,11 +599,25 @@ function initMentorDispatch() {
     else mentors.unshift(mentor);
     saveDispatchMentors(mentors);
 
-    const contacts = readDispatchStorage(dispatchStorageKeys.mentorContacts, {});
-    contacts[mentorId] = { contact: document.querySelector("#mentorContact").value.trim() };
+    contacts[mentorId] = {
+      ...existingContact,
+      phone: document.querySelector("#mentorPhone").value.trim(),
+      wechat: document.querySelector("#mentorWechat").value.trim(),
+      ...(proof || {})
+    };
     writeDispatchStorage(dispatchStorageKeys.mentorContacts, contacts);
     writeDispatchStorage(dispatchStorageKeys.mentorIdentity, mentorId);
+    const accounts = getMentorAccounts();
+    const accountIndex = accounts.findIndex((account) => account.id === accountId);
+    if (accountIndex >= 0 && accounts[accountIndex].mentorId !== mentorId) {
+      accounts[accountIndex].mentorId = mentorId;
+      accounts[accountIndex].updatedAt = new Date().toISOString();
+      saveMentorAccounts(accounts);
+    }
     showDispatchMessage(profileMessage, `资料已保存。你的平台编号是 ${mentorId}，联系方式仅店长端可见。`, true);
+    document.querySelector("#mentorProof").value = "";
+    document.querySelector("#mentorProofState").textContent = `已上传：${contacts[mentorId].proofName}；重新选择文件可替换。`;
+    submitButton.disabled = false;
     renderMentorOrders();
   });
 
@@ -453,7 +666,7 @@ function managerMentorOptionMarkup(request, selectedId = "") {
 function managerRequestMarkup(request, studentContacts, mentorContacts) {
   const requester = studentContacts[request.id] || { name: "未记录", contact: "未记录" };
   const assignedMentor = getDispatchMentors().find((mentor) => mentor.id === request.assignedMentorId);
-  const assignedContact = assignedMentor ? mentorContacts[assignedMentor.id]?.contact || "未记录" : "尚未派单";
+  const assignedContact = assignedMentor ? formatMentorContact(mentorContacts[assignedMentor.id]) : "尚未派单";
   const appliedCount = (request.applications || []).length;
 
   return `
@@ -493,13 +706,52 @@ function managerRequestMarkup(request, studentContacts, mentorContacts) {
 }
 
 function managerMentorCardMarkup(mentor, mentorContacts) {
+  const contact = mentorContacts[mentor.id] || {};
+  const proofIsSafe = /^data:(?:image\/[a-z0-9.+-]+|application\/pdf);base64,/i.test(contact.proofDataUrl || "");
+  const proofMarkup = proofIsSafe
+    ? `<a href="${escapeDispatchHtml(contact.proofDataUrl)}" target="_blank" rel="noopener">查看证明（${escapeDispatchHtml(contact.proofName || "已上传文件")}）</a>`
+    : "未上传证明";
   return `
     <article class="mentor-resource-card">
       <div class="order-card-top"><h3>${escapeDispatchHtml(mentor.name)}</h3><span class="order-id">${escapeDispatchHtml(mentor.id)}</span></div>
       <div class="order-meta"><span>${escapeDispatchHtml(mentor.major)}</span><span>${escapeDispatchHtml(mentor.rate)}</span><span>${escapeDispatchHtml([mentor.country, mentor.city, mentor.area].filter(Boolean).join(" · "))}</span></div>
       <p><strong>科目：</strong>${escapeDispatchHtml(mentor.subjects)}</p>
       <p>${escapeDispatchHtml(mentor.bio)}</p>
-      <div class="mentor-contact">联系方式：${escapeDispatchHtml(mentorContacts[mentor.id]?.contact || "未记录")}</div>
+      <div class="mentor-contact">${escapeDispatchHtml(formatMentorContact(contact))}</div>
+      <div class="mentor-contact">认证证明：${proofMarkup}</div>
+    </article>`;
+}
+
+function managerMentorVerificationMarkup(account) {
+  const faceIsSafe = /^data:image\/[a-z0-9.+-]+;base64,/i.test(account.facePhoto?.dataUrl || "");
+  const idIsSafe = /^data:image\/[a-z0-9.+-]+;base64,/i.test(account.idPhoto?.dataUrl || "");
+  const statusLabel = { pending: "待审核", approved: "已通过", rejected: "已驳回" }[account.verificationStatus] || "待审核";
+  const statusClass = account.verificationStatus === "approved"
+    ? "status-accepted"
+    : account.verificationStatus === "rejected" ? "status-rejected" : "status-pending";
+  const reviewActions = account.verificationStatus === "approved"
+    ? `<button class="dispatch-danger" type="button" data-reject-mentor-account="${escapeDispatchHtml(account.id)}">撤销认证</button>`
+    : `
+      <button class="dispatch-primary" type="button" data-approve-mentor-account="${escapeDispatchHtml(account.id)}">${account.verificationStatus === "rejected" ? "重新通过" : "确认一致并通过"}</button>
+      <button class="dispatch-danger" type="button" data-reject-mentor-account="${escapeDispatchHtml(account.id)}">驳回认证</button>`;
+  return `
+    <article class="order-card verification-card">
+      <div class="order-card-top">
+        <div><h3>${escapeDispatchHtml(account.displayName)}</h3><span class="order-id">${escapeDispatchHtml(account.loginAccount)}</span></div>
+        <span class="status-pill ${statusClass}">${statusLabel}</span>
+      </div>
+      <div class="verification-photos">
+        <figure class="verification-photo">
+          ${faceIsSafe ? `<img src="${escapeDispatchHtml(account.facePhoto.dataUrl)}" alt="${escapeDispatchHtml(account.displayName)} 的清晰正面人脸照" />` : '<div class="empty-dispatch">人脸照无效</div>'}
+          <figcaption>清晰正面人脸照</figcaption>
+        </figure>
+        <figure class="verification-photo">
+          ${idIsSafe ? `<img src="${escapeDispatchHtml(account.idPhoto.dataUrl)}" alt="${escapeDispatchHtml(account.displayName)} 的身份证照片" />` : '<div class="empty-dispatch">身份证照片无效</div>'}
+          <figcaption>身份证照片</figcaption>
+        </figure>
+      </div>
+      <div class="verification-warning">请人工核验两张照片是否清晰、是否为同一人；本静态演示版不执行自动生物识别。</div>
+      <div class="order-actions">${reviewActions}</div>
     </article>`;
 }
 
@@ -512,6 +764,7 @@ function initManagerDispatch(onInvalidSession) {
 
   const requestList = document.querySelector("#managerRequestList");
   const mentorList = document.querySelector("#managerMentorList");
+  const verificationList = document.querySelector("#managerMentorVerificationList");
   const searchInput = document.querySelector("#managerSearch");
   const statusFilter = document.querySelector("#managerStatusFilter");
 
@@ -526,6 +779,7 @@ function initManagerDispatch(onInvalidSession) {
     const requests = getDispatchRequests();
     const studentContacts = readDispatchStorage(dispatchStorageKeys.studentContacts, {});
     const mentorContacts = readDispatchStorage(dispatchStorageKeys.mentorContacts, {});
+    const mentorAccounts = getMentorAccounts();
     const query = normalizeDispatchText(searchInput.value);
     const status = statusFilter.value;
     const filtered = requests.filter((request) => {
@@ -541,7 +795,14 @@ function initManagerDispatch(onInvalidSession) {
       ? filtered.map((request) => managerRequestMarkup(request, studentContacts, mentorContacts)).join("")
       : '<p class="empty-dispatch">没有符合筛选条件的辅导需求。</p>';
 
-    const mentors = getDispatchMentors();
+    verificationList.innerHTML = mentorAccounts.length
+      ? mentorAccounts.map(managerMentorVerificationMarkup).join("")
+      : '<p class="empty-dispatch">暂时没有待审核的辅导员注册资料。</p>';
+
+    const approvedMentorIds = new Set(mentorAccounts
+      .filter((account) => account.verificationStatus === "approved" && account.mentorId)
+      .map((account) => account.mentorId));
+    const mentors = getDispatchMentors().filter((mentor) => approvedMentorIds.has(mentor.id));
     mentorList.innerHTML = mentors.length
       ? mentors.map((mentor) => managerMentorCardMarkup(mentor, mentorContacts)).join("")
       : '<p class="empty-dispatch">还没有辅导员登记资料。</p>';
@@ -555,8 +816,32 @@ function initManagerDispatch(onInvalidSession) {
     const assignButton = event.target.closest("[data-assign-request]");
     const completeButton = event.target.closest("[data-complete-request]");
     const reopenButton = event.target.closest("[data-reopen-request]");
-    if (!assignButton && !completeButton && !reopenButton) return;
+    const approveMentorButton = event.target.closest("[data-approve-mentor-account]");
+    const rejectMentorButton = event.target.closest("[data-reject-mentor-account]");
+    if (!assignButton && !completeButton && !reopenButton && !approveMentorButton && !rejectMentorButton) return;
     if (!requireManagerSession()) return;
+
+    if (approveMentorButton || rejectMentorButton) {
+      const accountId = approveMentorButton?.dataset.approveMentorAccount || rejectMentorButton?.dataset.rejectMentorAccount;
+      const accounts = getMentorAccounts();
+      const account = accounts.find((item) => item.id === accountId);
+      if (!account) return;
+      account.verificationStatus = approveMentorButton ? "approved" : "rejected";
+      account.updatedAt = new Date().toISOString();
+      saveMentorAccounts(accounts);
+      if (account.mentorId) {
+        const mentors = getDispatchMentors();
+        const mentor = mentors.find((item) => item.id === account.mentorId);
+        if (mentor) {
+          mentor.active = Boolean(approveMentorButton);
+          mentor.updatedAt = new Date().toISOString();
+          saveDispatchMentors(mentors);
+        }
+      }
+      renderManagerDispatch();
+      return;
+    }
+
     const requestId = assignButton?.dataset.assignRequest || completeButton?.dataset.completeRequest || reopenButton?.dataset.reopenRequest;
     const requests = getDispatchRequests();
     const request = requests.find((item) => item.id === requestId);
@@ -601,6 +886,7 @@ async function initManagerAccess() {
     logoutButton.hidden = true;
     document.querySelector("#managerRequestList").replaceChildren();
     document.querySelector("#managerMentorList").replaceChildren();
+    document.querySelector("#managerMentorVerificationList").replaceChildren();
     ["managerPendingCount", "managerAppliedCount", "managerAssignedCount", "managerAcceptedCount"].forEach((id) => {
       document.querySelector(`#${id}`).textContent = "0";
     });
@@ -702,5 +988,5 @@ async function initManagerAccess() {
 }
 
 if (dispatchRole === "student") initStudentDispatch();
-if (dispatchRole === "mentor") initMentorDispatch();
+if (dispatchRole === "mentor") initMentorAuth();
 if (dispatchRole === "manager") initManagerAccess();
