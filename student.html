@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN" data-dispatch-role="student">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CampusLoop 找辅导入口</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="dispatch.css" />
+  </head>
+  <body>
+    <header class="dispatch-topbar">
+      <a class="dispatch-brand" href="index.html"><span>CL</span><strong>CampusLoop Dispatch</strong></a>
+      <div class="dispatch-role-badge student">找辅导入口</div>
+    </header>
+
+    <main class="dispatch-shell">
+      <section class="dispatch-hero student-hero">
+        <div>
+          <p class="dispatch-eyebrow">Tutoring request</p>
+          <h1>告诉店长你需要哪一门辅导</h1>
+          <p>按专业、具体科目和地区提交需求。平台店长负责匹配和派单，不会向辅导员展示你的联系方式。</p>
+        </div>
+        <div class="privacy-card">
+          <strong>联系方式由平台保管</strong>
+          <span>辅导员只能看到学习需求和订单编号，沟通由店长统一中转。</span>
+        </div>
+      </section>
+
+      <section class="dispatch-grid student-grid">
+        <form class="dispatch-panel dispatch-form" id="requestForm">
+          <div class="panel-heading">
+            <div><p class="dispatch-eyebrow">New request</p><h2>提交辅导需求</h2></div>
+            <span class="step-badge">信息越细，匹配越准</span>
+          </div>
+
+          <div class="form-grid two">
+            <label><span>称呼</span><input id="requesterName" type="text" required placeholder="例如：李同学" /></label>
+            <label><span>联系方式</span><input id="requesterContact" type="text" required placeholder="微信 / 邮箱 / 手机号" /></label>
+          </div>
+
+          <div class="form-grid two">
+            <label>
+              <span>专业方向</span>
+              <select id="requestMajor" required>
+                <option value="">请选择专业</option>
+                <option>商科与管理</option><option>会计与金融</option><option>经济学</option><option>计算机科学</option>
+                <option>数据科学与统计</option><option>工程学</option><option>教育学</option><option>心理学</option>
+                <option>法律</option><option>医学与健康</option><option>文学与语言</option><option>艺术与设计</option><option>其他</option>
+              </select>
+            </label>
+            <label><span>具体科目 / 课程名称</span><input id="requestSubject" type="text" required placeholder="例如：Corporate Finance / COMP3001" /></label>
+          </div>
+
+          <div class="form-grid three">
+            <label><span>学历阶段</span><select id="requestLevel" required><option value="">请选择</option><option>预科</option><option>本科</option><option>硕士</option><option>博士</option><option>其他</option></select></label>
+            <label><span>辅导类型</span><select id="requestServiceType" required><option value="">请选择</option><option>课程知识辅导</option><option>作业思路梳理</option><option>论文结构指导</option><option>文献综述指导</option><option>数据分析指导</option><option>语言润色建议</option><option>答辩准备</option></select></label>
+            <label><span>预算</span><input id="requestBudget" type="text" required placeholder="例如：£30/小时或总预算 £180" /></label>
+          </div>
+
+          <div class="form-grid three">
+            <label><span>国家</span><input id="requestCountry" type="text" required placeholder="例如：英国" /></label>
+            <label><span>城市</span><input id="requestCity" type="text" required placeholder="例如：伦敦" /></label>
+            <label><span>地区 / 时区</span><input id="requestArea" type="text" required placeholder="例如：UCL 附近 / GMT" /></label>
+          </div>
+
+          <div class="form-grid two">
+            <label><span>希望开始日期</span><input id="requestStartDate" type="date" required /></label>
+            <label><span>截止日期</span><input id="requestDeadline" type="date" required /></label>
+          </div>
+
+          <label><span>需求说明</span><textarea id="requestDescription" rows="5" required placeholder="写清课程难点、作业要求、当前进度和希望的辅导方式。请不要在这里填写联系方式。"></textarea></label>
+          <label class="consent-row"><input id="requestPrivacyConsent" type="checkbox" required /><span>我同意由平台店长保管联系方式并代为匹配，辅导员无法直接查看。</span></label>
+          <p class="dispatch-message" id="requestMessage" aria-live="polite"></p>
+          <button class="dispatch-primary" type="submit">提交给店长匹配</button>
+        </form>
+
+        <aside class="dispatch-panel status-panel">
+          <div class="panel-heading"><div><p class="dispatch-eyebrow">My requests</p><h2>我的需求进度</h2></div></div>
+          <p class="panel-note">本机只显示使用当前联系方式提交的需求。</p>
+          <div class="dispatch-list" id="studentRequestList"></div>
+        </aside>
+      </section>
+    </main>
+    <script src="dispatch.js"></script>
+  </body>
+</html>

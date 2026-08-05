@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN" data-dispatch-role="manager">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CampusLoop 店长派单入口</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="dispatch.css" />
+  </head>
+  <body>
+    <header class="dispatch-topbar">
+      <a class="dispatch-brand" href="index.html"><span>CL</span><strong>CampusLoop Dispatch</strong></a>
+      <div class="manager-header-actions">
+        <div class="dispatch-role-badge manager">店长唯一账号</div>
+        <button class="dispatch-secondary manager-logout" id="managerLogoutButton" type="button" hidden>退出</button>
+      </div>
+    </header>
+
+    <section class="manager-login-gate" id="managerLoginGate">
+      <div class="manager-login-card">
+        <span class="manager-lock-icon" aria-hidden="true">🔐</span>
+        <p class="dispatch-eyebrow">Single administrator</p>
+        <h1>店长后台登录</h1>
+        <p>此入口只有一个“店长”账号。输入正确密码后才能查看双方联系方式和执行派单。</p>
+        <div class="manager-account-row"><span>账号</span><strong>店长（唯一账号）</strong></div>
+        <form id="managerLoginForm">
+          <label><span>店长密码</span><input id="managerPassword" type="password" required autocomplete="current-password" placeholder="请输入店长密码" /></label>
+          <p class="dispatch-message" id="managerLoginMessage" aria-live="polite"></p>
+          <button class="dispatch-primary" type="submit">进入店长派单端</button>
+        </form>
+        <a class="manager-back-link" href="index.html">返回入口中心</a>
+      </div>
+    </section>
+
+    <main class="dispatch-shell" id="managerApp" hidden>
+      <section class="dispatch-hero manager-hero">
+        <div>
+          <p class="dispatch-eyebrow">Private dispatch console</p>
+          <h1>你是双方信息的唯一中转</h1>
+          <p>集中查看学员需求和辅导员资料，按专业、具体科目与地区匹配，派单后继续由平台协调双方沟通。</p>
+        </div>
+        <div class="privacy-card private">
+          <strong>仅店长端显示双方联系方式</strong>
+          <span>找辅导端和辅导员端均不会渲染对方联系方式。</span>
+        </div>
+      </section>
+
+      <section class="manager-stats" aria-label="派单统计">
+        <article><span>待匹配</span><strong id="managerPendingCount">0</strong></article>
+        <article><span>已有申请</span><strong id="managerAppliedCount">0</strong></article>
+        <article><span>已派单</span><strong id="managerAssignedCount">0</strong></article>
+        <article><span>已确认 / 完成</span><strong id="managerAcceptedCount">0</strong></article>
+      </section>
+
+      <section class="dispatch-panel manager-control-panel">
+        <div class="panel-heading">
+          <div><p class="dispatch-eyebrow">Dispatch board</p><h2>需求与派单</h2></div>
+          <div class="manager-filters">
+            <input id="managerSearch" type="search" placeholder="搜索订单、专业、科目或地区" />
+            <select id="managerStatusFilter"><option value="all">全部状态</option><option value="pending">待匹配</option><option value="applied">已有申请</option><option value="assigned">已派单</option><option value="accepted">已确认</option><option value="completed">已完成</option></select>
+          </div>
+        </div>
+        <div class="dispatch-list manager-request-list" id="managerRequestList"></div>
+      </section>
+
+      <section class="dispatch-panel">
+        <div class="panel-heading"><div><p class="dispatch-eyebrow">Mentor directory</p><h2>辅导员资源库</h2></div><span class="step-badge">联系方式仅此处可见</span></div>
+        <div class="mentor-directory" id="managerMentorList"></div>
+      </section>
+
+      <section class="dispatch-panel manager-security-panel">
+        <div class="panel-heading">
+          <div><p class="dispatch-eyebrow">Account security</p><h2>更改店长密码</h2></div>
+          <span class="step-badge">唯一账号 · 单一有效登录</span>
+        </div>
+        <form class="manager-password-form" id="managerPasswordForm">
+          <label><span>当前密码</span><input id="managerCurrentPassword" type="password" required autocomplete="current-password" /></label>
+          <label><span>新密码</span><input id="managerNewPassword" type="password" required minlength="8" autocomplete="new-password" placeholder="至少 8 位" /></label>
+          <label><span>确认新密码</span><input id="managerConfirmPassword" type="password" required minlength="8" autocomplete="new-password" /></label>
+          <button class="dispatch-primary" type="submit">确认修改密码</button>
+          <p class="dispatch-message" id="managerPasswordMessage" aria-live="polite"></p>
+        </form>
+      </section>
+    </main>
+    <script src="dispatch.js"></script>
+  </body>
+</html>

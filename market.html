@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CampusLoop 二手市场</title>
+    <meta name="description" content="CampusLoop 留学生二手市场：按国家、城市和地区浏览、发布并沟通二手商品。" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="market.css" />
+  </head>
+  <body>
+    <header class="market-topbar">
+      <a class="market-brand" href="market.html" aria-label="CampusLoop 二手市场首页">
+        <span>CL</span>
+        <strong>CampusLoop</strong>
+        <em>二手市场</em>
+      </a>
+      <nav class="market-nav" aria-label="二手市场导航">
+        <a href="#market">逛二手</a>
+        <button id="headerPostButton" type="button">发布商品</button>
+        <a href="#messages">私信 <span class="unread-badge" id="unreadBadge" hidden>0</span></a>
+      </nav>
+      <div class="account-actions">
+        <span id="accountLabel" hidden></span>
+        <button class="outline-button compact" id="authButton" type="button">登录 / 注册</button>
+        <button class="text-button" id="logoutButton" type="button" hidden>退出</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="market-hero">
+        <div>
+          <p class="eyebrow">SECONDHAND MARKET</p>
+          <h1>留学生二手市场</h1>
+          <p>按国家、城市和地区寻找教材、家具与生活用品。一个入口，登录后既可以发布商品，也可以联系卖家。</p>
+          <div class="hero-actions">
+            <a class="primary-button" href="#market">开始逛二手</a>
+            <button class="secondary-button" id="heroPostButton" type="button">发布二手商品</button>
+          </div>
+        </div>
+        <div class="hero-market-card" aria-hidden="true">
+          <span class="hero-card-tag">附近好物</span>
+          <div class="hero-card-icon">♻</div>
+          <strong>让闲置继续有用</strong>
+          <small>浏览 · 发布 · 私信</small>
+        </div>
+      </section>
+
+      <section class="market-section" id="market" aria-labelledby="marketTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">BROWSE ITEMS</p>
+            <h2 id="marketTitle">二手商品</h2>
+          </div>
+          <button class="primary-button small" id="marketPostButton" type="button">＋ 发布商品</button>
+        </div>
+
+        <div class="market-layout">
+          <aside class="filters" aria-label="商品筛选">
+            <div class="filter-heading">
+              <strong>筛选商品</strong>
+              <button class="text-button" id="clearFiltersButton" type="button">清除</button>
+            </div>
+            <label>
+              <span>搜索</span>
+              <input id="searchInput" type="search" placeholder="书桌、台灯、教材" />
+            </label>
+            <label>
+              <span>国家</span>
+              <select id="countryFilter">
+                <option value="all">全部国家</option>
+              </select>
+            </label>
+            <label>
+              <span>城市</span>
+              <select id="cityFilter">
+                <option value="all">全部城市（请先选择国家）</option>
+              </select>
+            </label>
+            <label>
+              <span>地区 / 州省</span>
+              <select id="areaFilter">
+                <option value="all">全部地区（请先选择国家）</option>
+              </select>
+            </label>
+            <label>
+              <span>商品分类</span>
+              <select id="categoryFilter">
+                <option value="all">全部分类</option>
+                <option value="教材书籍">教材书籍</option>
+                <option value="家具家居">家具家居</option>
+                <option value="数码电器">数码电器</option>
+                <option value="厨房用品">厨房用品</option>
+                <option value="服饰用品">服饰用品</option>
+                <option value="其他">其他</option>
+              </select>
+            </label>
+          </aside>
+
+          <div class="items-column">
+            <div class="result-bar">
+              <span id="resultCount">0 件商品</span>
+              <select id="sortSelect" aria-label="商品排序">
+                <option value="newest">最新发布</option>
+                <option value="priceAsc">价格从低到高</option>
+                <option value="priceDesc">价格从高到低</option>
+              </select>
+            </div>
+            <div class="item-grid" id="itemGrid" aria-live="polite"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="messages-section" id="messages" aria-labelledby="messagesTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">PRIVATE MESSAGES</p>
+            <h2 id="messagesTitle">私信中心</h2>
+          </div>
+          <p class="section-note">登录后查看与买家或卖家的商品沟通。</p>
+        </div>
+        <div class="message-login-note" id="messageLoginNote">
+          <strong>登录后使用私信</strong>
+          <span>登录账号即可联系卖家并保存会话。</span>
+          <button class="primary-button small" id="messageLoginButton" type="button">登录 / 注册</button>
+        </div>
+        <div class="message-layout" id="messageLayout" hidden>
+          <aside class="conversation-list" aria-label="会话列表">
+            <div class="conversation-heading">商品会话</div>
+            <div id="conversationItems"></div>
+          </aside>
+          <div class="chat-panel">
+            <div class="chat-header">
+              <div class="chat-avatar" id="chatAvatar">CL</div>
+              <div>
+                <h3 id="chatTitle">请选择一个会话</h3>
+                <p id="chatMeta">从左侧选择商品后开始沟通。</p>
+              </div>
+            </div>
+            <div class="message-history" id="messageHistory" aria-live="polite"></div>
+            <form class="message-form" id="messageForm">
+              <textarea id="messageInput" rows="3" placeholder="你好，我想了解这件商品是否还在。" disabled></textarea>
+              <button class="primary-button" type="submit" disabled>发送私信</button>
+            </form>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="market-footer">
+      <a href="index.html">返回 CampusLoop 入口中心</a>
+      <span>CampusLoop 二手市场</span>
+    </footer>
+
+    <div class="modal-backdrop" id="authModal" hidden>
+      <section class="modal-dialog auth-dialog" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+        <button class="modal-close" data-close-modal="authModal" type="button" aria-label="关闭">×</button>
+        <p class="eyebrow">ACCOUNT</p>
+        <h2 id="authTitle">登录二手市场</h2>
+        <p class="modal-intro">一个普通账号即可浏览、买卖和私信，不区分不同版本。</p>
+        <div class="auth-tabs" role="tablist" aria-label="账号入口">
+          <button class="auth-tab active" type="button" data-auth-mode="login" role="tab" aria-selected="true">登录</button>
+          <button class="auth-tab" type="button" data-auth-mode="register" role="tab" aria-selected="false">注册</button>
+        </div>
+        <form class="modal-form" id="authForm">
+          <label id="nameField" hidden>
+            <span>昵称</span>
+            <input id="authName" type="text" autocomplete="name" placeholder="你的昵称" />
+          </label>
+          <label>
+            <span>邮箱</span>
+            <input id="authEmail" type="email" autocomplete="email" required placeholder="you@example.com" />
+          </label>
+          <label>
+            <span>密码</span>
+            <input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="至少 6 位" />
+          </label>
+          <p class="form-message" id="authMessage" aria-live="polite"></p>
+          <button class="primary-button" id="authSubmitButton" type="submit">登录账号</button>
+        </form>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="itemModal" hidden>
+      <section class="modal-dialog item-dialog" role="dialog" aria-modal="true" aria-labelledby="itemModalTitle">
+        <button class="modal-close" data-close-modal="itemModal" type="button" aria-label="关闭">×</button>
+        <p class="eyebrow">LIST AN ITEM</p>
+        <h2 id="itemModalTitle">发布二手商品</h2>
+        <p class="modal-intro">填写商品价格和所在地区，方便附近用户找到它。</p>
+        <form class="modal-form" id="itemForm">
+          <label>
+            <span>商品照片（可选）</span>
+            <input id="itemPhotoInput" type="file" accept="image/*" />
+          </label>
+          <div class="photo-preview" id="photoPreview"><span>照片预览</span></div>
+          <div class="form-grid two">
+            <label>
+              <span>商品名称</span>
+              <input id="itemNameInput" type="text" required placeholder="例如：台灯、书桌、教材" />
+            </label>
+            <label>
+              <span>商品分类</span>
+              <select id="itemCategoryInput" required>
+                <option value="教材书籍">教材书籍</option>
+                <option value="家具家居">家具家居</option>
+                <option value="数码电器">数码电器</option>
+                <option value="厨房用品">厨房用品</option>
+                <option value="服饰用品">服饰用品</option>
+                <option value="其他">其他</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-grid two">
+            <label>
+              <span>出售价格</span>
+              <input id="itemPriceInput" type="number" min="0" step="0.01" required placeholder="例如：25" />
+            </label>
+            <label>
+              <span>货币</span>
+              <select id="itemCurrencyInput" required>
+                <option value="£">英镑 £</option>
+                <option value="¥">人民币 ¥</option>
+                <option value="$">美元 $</option>
+                <option value="€">欧元 €</option>
+                <option value="C$">加元 C$</option>
+                <option value="A$">澳元 A$</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-grid three">
+            <label>
+              <span>国家</span>
+              <select id="itemCountryInput" required></select>
+            </label>
+            <label>
+              <span>城市</span>
+              <select id="itemCityInput" required></select>
+            </label>
+            <label>
+              <span>地区 / 州省</span>
+              <select id="itemAreaInput" required></select>
+            </label>
+          </div>
+          <div class="form-grid two">
+            <label id="itemCityCustomField" hidden>
+              <span>手动填写城市</span>
+              <input id="itemCityCustomInput" type="text" placeholder="输入数据中没有的城市" />
+            </label>
+            <label id="itemAreaCustomField" hidden>
+              <span>手动填写具体地区</span>
+              <input id="itemAreaCustomInput" type="text" placeholder="例如：Bloomsbury、杨浦区" />
+            </label>
+          </div>
+          <label>
+            <span>商品描述</span>
+            <textarea id="itemDescriptionInput" rows="4" placeholder="成色、取货方式、使用情况等"></textarea>
+          </label>
+          <p class="form-message" id="itemMessage" aria-live="polite"></p>
+          <button class="primary-button" type="submit">发布到二手市场</button>
+        </form>
+      </section>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    <script src="location-data.js"></script>
+    <script src="location-cities-1.js"></script>
+    <script src="location-cities-2.js"></script>
+    <script src="location-cities-3.js"></script>
+    <script src="location-cities-4.js"></script>
+    <script src="location-cities-5.js"></script>
+    <script src="location-cities-6.js"></script>
+    <script src="market.js"></script>
+  </body>
+</html>

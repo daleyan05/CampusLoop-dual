@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CampusLoop 入口中心</title>
+    <link rel="icon" href="data:," />
+    <style>
+      :root { color-scheme: light; --ink:#1b2430; --muted:#657084; --line:#d9e0e8; --paper:#f7f8f5; --white:#fff; --green:#2f7d68; --blue:#315f87; }
+      * { box-sizing:border-box; }
+      body { margin:0; min-height:100vh; display:grid; place-items:center; padding:28px; background:linear-gradient(135deg,#f7f8f5,#edf3f7); color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+      main { width:min(980px,100%); }
+      .brand { display:flex; align-items:center; gap:10px; margin-bottom:32px; font-weight:900; }
+      .mark { display:grid; width:42px; height:42px; place-items:center; border-radius:10px; background:var(--ink); color:var(--white); }
+      .eyebrow { margin:0 0 10px; color:#b45f46; font-size:12px; font-weight:900; text-transform:uppercase; }
+      h1 { max-width:760px; margin:0; font-size:clamp(42px,7vw,76px); line-height:.98; }
+      .intro { max-width:700px; margin:20px 0 32px; color:var(--muted); font-size:18px; line-height:1.7; }
+      .section-title { display:flex; align-items:end; justify-content:space-between; gap:14px; margin:34px 0 14px; }
+      .section-title h2 { margin:0; font-size:28px; }
+      .section-title span { color:var(--muted); font-size:13px; }
+      .entries { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+      .entry { display:grid; gap:14px; min-height:220px; padding:22px; border:1px solid var(--line); border-radius:12px; background:var(--white); box-shadow:0 14px 38px rgba(32,42,54,.08); }
+      .entry.student { border-top:5px solid var(--green); }
+      .entry.mentor { border-top:5px solid var(--blue); }
+      .entry.manager { border-top:5px solid #7a4b8d; }
+      .entry.market { border-top:5px solid #c75c3b; }
+      .entry h2 { margin:0; font-size:28px; }
+      .entry p { margin:0; color:var(--muted); font-size:15px; line-height:1.65; }
+      .entry a { align-self:end; display:inline-flex; min-height:42px; align-items:center; justify-content:center; border-radius:8px; color:var(--white); text-decoration:none; font-size:14px; font-weight:900; }
+      .student a { background:var(--green); }
+      .mentor a { background:var(--blue); }
+      .manager a { background:#7a4b8d; }
+      .market a { background:#c75c3b; }
+      @media (max-width:900px) { .entries { width:min(540px,100%); margin-inline:auto; grid-template-columns:1fr; } }
+      @media (max-width:680px) { .entries { grid-template-columns:1fr; } .section-title { align-items:flex-start; flex-direction:column; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="brand"><span class="mark">CL</span><span>CampusLoop</span></div>
+      <p class="eyebrow">Private dispatch platform</p>
+      <h1>CampusLoop 入口中心</h1>
+      <p class="intro">论文辅导采用平台派单制并保留三个独立入口；二手买卖使用一个统一市场入口，不区分不同版本。</p>
+      <div class="section-title"><h2>选择入口</h2><span>论文辅导三端 · 二手市场一个入口</span></div>
+      <div class="entries">
+        <article class="entry manager">
+          <h2>店长派单端</h2>
+          <p>密码保护的唯一店长账号。查看双方联系方式，按专业、科目和地区匹配辅导员，统一派单与中转沟通。</p>
+          <a href="manager.html">进入店长派单端</a>
+        </article>
+        <article class="entry mentor">
+          <h2>辅导员端</h2>
+          <p>登记擅长专业、科目和地区，查看脱敏订单并申请或确认接单。</p>
+          <a href="mentor.html">进入辅导员端</a>
+        </article>
+        <article class="entry student">
+          <h2>找辅导端</h2>
+          <p>细化填写专业、具体科目、地区、预算与截止日期，交由店长匹配。</p>
+          <a href="student.html">进入找辅导端</a>
+        </article>
+        <article class="entry market">
+          <h2>二手市场</h2>
+          <p>按国家、城市和地区浏览或发布二手商品，登录后既可以买也可以卖，并通过私信沟通。</p>
+          <a href="market.html">进入二手市场</a>
+        </article>
+      </div>
+    </main>
+  </body>
+</html>

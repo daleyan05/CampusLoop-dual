@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN" data-dispatch-role="mentor">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CampusLoop 辅导员接单入口</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="dispatch.css" />
+  </head>
+  <body>
+    <header class="dispatch-topbar">
+      <a class="dispatch-brand" href="index.html"><span>CL</span><strong>CampusLoop Dispatch</strong></a>
+      <div class="dispatch-role-badge mentor">辅导员入口</div>
+    </header>
+
+    <main class="dispatch-shell">
+      <section class="dispatch-hero mentor-hero">
+        <div>
+          <p class="dispatch-eyebrow">Mentor workspace</p>
+          <h1>按专业、科目和地区申请接单</h1>
+          <p>你可以查看脱敏后的辅导需求并申请。店长完成匹配后再派单，学员联系方式始终不可见。</p>
+        </div>
+        <div class="privacy-card">
+          <strong>禁止绕过平台联系学员</strong>
+          <span>订单只显示编号和学习需求；确认接单后仍由店长中转沟通。</span>
+        </div>
+      </section>
+
+      <section class="dispatch-panel dispatch-form compact" id="mentorProfilePanel">
+        <div class="panel-heading">
+          <div><p class="dispatch-eyebrow">Mentor profile</p><h2>辅导能力与接单地区</h2></div>
+          <span class="step-badge" id="mentorProfileState">尚未登记</span>
+        </div>
+        <form id="mentorProfileForm">
+          <div class="form-grid three">
+            <label><span>显示名称</span><input id="mentorDisplayName" type="text" required placeholder="例如：Dale 老师" /></label>
+            <label><span>平台联系方式</span><input id="mentorContact" type="text" required placeholder="仅店长可见" /></label>
+            <label><span>每小时价格</span><input id="mentorRate" type="text" required placeholder="例如：£28/小时" /></label>
+          </div>
+          <div class="form-grid two">
+            <label>
+              <span>主要专业</span>
+              <select id="mentorMajor" required>
+                <option value="">请选择专业</option>
+                <option>商科与管理</option><option>会计与金融</option><option>经济学</option><option>计算机科学</option>
+                <option>数据科学与统计</option><option>工程学</option><option>教育学</option><option>心理学</option>
+                <option>法律</option><option>医学与健康</option><option>文学与语言</option><option>艺术与设计</option><option>其他</option>
+              </select>
+            </label>
+            <label><span>可辅导的具体科目</span><input id="mentorSubjects" type="text" required placeholder="用逗号分隔，例如：公司金融, APA, SPSS" /></label>
+          </div>
+          <div class="form-grid three">
+            <label><span>国家</span><input id="mentorDispatchCountry" type="text" required placeholder="例如：英国" /></label>
+            <label><span>城市</span><input id="mentorDispatchCity" type="text" required placeholder="例如：伦敦" /></label>
+            <label><span>地区 / 时区</span><input id="mentorDispatchArea" type="text" required placeholder="例如：GMT" /></label>
+          </div>
+          <label><span>个人简介</span><textarea id="mentorBio" rows="3" required placeholder="学历背景、擅长课程、可接单时间。不要填写公开联系方式。"></textarea></label>
+          <p class="dispatch-message" id="mentorProfileMessage" aria-live="polite"></p>
+          <button class="dispatch-primary" type="submit">保存辅导员资料</button>
+        </form>
+      </section>
+
+      <section class="dispatch-grid mentor-grid">
+        <section class="dispatch-panel">
+          <div class="panel-heading"><div><p class="dispatch-eyebrow">Open requests</p><h2>可申请订单</h2></div><span class="step-badge">不显示学员联系方式</span></div>
+          <div class="dispatch-list" id="mentorOpenList"></div>
+        </section>
+        <section class="dispatch-panel">
+          <div class="panel-heading"><div><p class="dispatch-eyebrow">My assignments</p><h2>我的派单</h2></div></div>
+          <div class="dispatch-list" id="mentorAssignmentList"></div>
+        </section>
+      </section>
+    </main>
+    <script src="dispatch.js"></script>
+  </body>
+</html>
