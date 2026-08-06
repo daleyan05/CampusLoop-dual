@@ -167,6 +167,7 @@ a { color: inherit; text-decoration: none; }
   box-shadow: var(--shadow);
 }
 .dispatch-form.compact { margin: 0 clamp(18px, 5vw, 68px); }
+.mentor-booking-panel { margin: 18px clamp(18px, 5vw, 68px) 0; }
 .panel-heading {
   display: flex;
   align-items: flex-start;
@@ -211,6 +212,20 @@ html[data-dispatch-role="mentor"] input:focus,
 html[data-dispatch-role="mentor"] select:focus,
 html[data-dispatch-role="mentor"] textarea:focus { border-color: var(--mentor); box-shadow: 0 0 0 3px rgba(49, 95, 135, 0.12); }
 .mentor-proof-state { color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.5; }
+.selected-mentor-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 15px 16px;
+  border: 1px solid rgba(47, 125, 104, 0.25);
+  border-radius: 10px;
+  background: #edf7f3;
+}
+.selected-mentor-notice > div { display: grid; gap: 4px; }
+.selected-mentor-notice span { color: var(--student); font-size: 12px; font-weight: 900; }
+.selected-mentor-notice strong { font-size: 19px; }
+.selected-mentor-notice small { color: var(--muted); line-height: 1.5; }
 
 .mentor-auth-gate { padding: clamp(34px, 6vw, 72px) clamp(18px, 5vw, 68px); }
 .mentor-auth-intro { display: grid; gap: 16px; max-width: 920px; margin-bottom: 24px; }
@@ -295,6 +310,43 @@ html[data-dispatch-role="manager"] .dispatch-primary { background: var(--manager
 .approved-label { color: var(--student); font-size: 12px; font-weight: 900; }
 .approved-mentor-card p { color: var(--ink); }
 .approved-mentor-card .order-actions { padding-top: 2px; }
+.student-mentor-directory { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.bookable-mentor-card {
+  display: grid;
+  gap: 13px;
+  padding: 19px;
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--student);
+  border-radius: 11px;
+  background: linear-gradient(145deg, #ffffff, #f7fbf9);
+}
+.bookable-mentor-card h3, .bookable-mentor-card p { margin: 0; }
+.bookable-mentor-card h3 { font-size: 21px; }
+.bookable-mentor-card p { color: var(--muted); line-height: 1.6; }
+.mentor-availability {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #edf7f3;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.mentor-availability strong { color: var(--student); }
+.booking-load { color: var(--muted); font-size: 12px; font-weight: 800; }
+.preferred-mentor-line {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #edf7f3;
+  color: var(--student);
+  font-size: 12px;
+  font-weight: 900;
+}
+.preferred-request-box { border-color: rgba(47, 125, 104, 0.24); background: #f1faf6; }
 .status-pill {
   display: inline-flex;
   min-height: 27px;
@@ -383,14 +435,15 @@ html[data-dispatch-role="manager"] .dispatch-primary { background: var(--manager
 @media (max-width: 1050px) {
   .dispatch-hero, .student-grid, .mentor-grid, .manager-order-grid, .mentor-auth-grid { grid-template-columns: 1fr; }
   .manager-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .mentor-directory { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mentor-directory, .student-mentor-directory { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 720px) {
   .dispatch-hero { padding-top: 34px; }
   .dispatch-hero h1 { font-size: clamp(38px, 12vw, 58px); }
-  .form-grid.two, .form-grid.three, .manager-filters, .assignment-controls, .mentor-directory, .manager-stats, .manager-password-form, .verification-photos { grid-template-columns: 1fr; }
+  .form-grid.two, .form-grid.three, .manager-filters, .assignment-controls, .mentor-directory, .student-mentor-directory, .manager-stats, .manager-password-form, .verification-photos { grid-template-columns: 1fr; }
   .panel-heading { flex-direction: column; }
+  .selected-mentor-notice { align-items: stretch; flex-direction: column; }
   .step-badge { white-space: normal; }
   .dispatch-topbar { align-items: flex-start; }
   .dispatch-brand strong { display: none; }

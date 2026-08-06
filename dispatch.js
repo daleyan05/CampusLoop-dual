@@ -244,13 +244,16 @@ function matchingScore(request, mentor) {
   return Math.min(score, 100);
 }
 
-function matchingMentorsForRequest(request) {
-  const appliedIds = new Set(request.applications || []);
+function getBookableMentors() {
   const approvedMentorIds = new Set(getMentorAccounts()
     .filter((account) => account.verificationStatus === "approved" && account.mentorId)
     .map((account) => account.mentorId));
-  return getDispatchMentors()
-    .filter((mentor) => mentor.active !== false && approvedMentorIds.has(mentor.id))
+  return getDispatchMentors().filter((mentor) => mentor.active !== false && approvedMentorIds.has(mentor.id));
+}
+
+function matchingMentorsForRequest(request) {
+  const appliedIds = new Set(request.applications || []);
+  return getBookableMentors()
     .map((mentor) => ({ mentor, score: matchingScore(request, mentor), applied: appliedIds.has(mentor.id) }))
     .sort((a, b) => Number(b.applied) - Number(a.applied) || b.score - a.score || a.mentor.name.localeCompare(b.mentor.name, "zh-CN"));
 }
@@ -290,6 +293,15 @@ function approvedMentorCardMarkup(request) {
 }
 
 function renderStudentRequestCard(request) {
+  const preferredMentor = request.preferredMentorId
+    ? getDispatchMentors().find((mentor) => mentor.id === request.preferredMentorId)
+    : null;
+  const preferredStatus = preferredMentor
+    ? {
+        pending: `已向 ${preferredMentor.name} 发起预约申请，等待辅导员接单。`,
+        applied: `${preferredMentor.name} 已接受预约申请，正在等待店长审核。`
+      }[request.status]
+    : "";
   const statusText = {
     pending: "需求已发布到辅导员抢单大厅，等待辅导员抢单。",
     applied: "已有辅导员抢单，正在等待店长审核。",
@@ -303,10 +315,31 @@ function renderStudentRequestCard(request) {
       <div class="order-card-top"><span class="order-id">${escapeDispatchHtml(request.id)}</span>${dispatchStatusMarkup(request.status)}</div>
       <h3>${escapeDispatchHtml(request.subject)}</h3>
       ${orderMetaMarkup(request)}
-      <p>${escapeDispatchHtml(statusText)}</p>
+      ${preferredMentor ? `<span class="preferred-mentor-line">指定辅导员 · ${escapeDispatchHtml(preferredMentor.name)}</span>` : ""}
+      <p>${escapeDispatchHtml(preferredStatus || statusText)}</p>
       ${approvedMentorCardMarkup(request)}
       <span class="privacy-mask">辅导员联系方式由店长保管</span>
       <small>提交时间：${formatDispatchTime(request.createdAt)}</small>
+    </article>`;
+}
+
+function studentMentorBookingCardMarkup(mentor, requests) {
+  const activeBookings = requests.filter((request) => request.status !== "completed"
+    && (request.preferredMentorId === mentor.id || request.assignedMentorId === mentor.id)).length;
+  return `
+    <article class="bookable-mentor-card">
+      <div class="order-card-top"><h3>${escapeDispatchHtml(mentor.name)}</h3><span class="order-id">${escapeDispatchHtml(mentor.id)}</span></div>
+      <div class="order-meta">
+        <span>${escapeDispatchHtml(mentor.major)}</span>
+        <span>${escapeDispatchHtml(mentor.rate)}</span>
+        <span>${escapeDispatchHtml([mentor.country, mentor.city, mentor.area].filter(Boolean).join(" · "))}</span>
+      </div>
+      <p><strong>可辅导科目：</strong>${escapeDispatchHtml(mentor.subjects)}</p>
+      <p>${escapeDispatchHtml(mentor.bio)}</p>
+      <div class="mentor-availability"><strong>可预约时间</strong><span>${escapeDispatchHtml(mentor.availability || "请向店长确认具体时间")}</span></div>
+      <span class="booking-load">当前预约：${activeBookings} 单处理中</span>
+      <span class="privacy-mask">申请时不公开双方联系方式</span>
+      <button class="dispatch-primary" type="button" data-request-mentor="${escapeDispatchHtml(mentor.id)}">申请预约辅导员</button>
     </article>`;
 }
 
@@ -314,6 +347,11 @@ function initStudentDispatch() {
   const form = document.querySelector("#requestForm");
   const message = document.querySelector("#requestMessage");
   const list = document.querySelector("#studentRequestList");
+  const mentorDirectory = document.querySelector("#studentMentorDirectory");
+  const preferredMentorInput = document.querySelector("#requestPreferredMentor");
+  const selectedMentorNotice = document.querySelector("#selectedMentorNotice");
+  const selectedMentorName = document.querySelector("#selectedMentorName");
+  const clearPreferredMentorButton = document.querySelector("#clearPreferredMentor");
   const startDate = document.querySelector("#requestStartDate");
   const deadline = document.querySelector("#requestDeadline");
   const today = new Date().toISOString().slice(0, 10);
@@ -334,10 +372,48 @@ function initStudentDispatch() {
       : '<p class="empty-dispatch">还没有提交需求。填写左侧表单后，店长会在这里更新派单进度。</p>';
   }
 
+  function renderStudentMentors() {
+    const mentors = getBookableMentors().sort((a, b) => a.name.localeCompare(b.name, "zh-CN"));
+    mentorDirectory.innerHTML = mentors.length
+      ? mentors.map((mentor) => studentMentorBookingCardMarkup(mentor, getDispatchRequests())).join("")
+      : '<p class="empty-dispatch">当前还没有可预约的认证辅导员。</p>';
+  }
+
+  function selectPreferredMentor(mentorId) {
+    const mentor = getBookableMentors().find((item) => item.id === mentorId);
+    if (!mentor) {
+      showDispatchMessage(message, "该辅导员目前不可预约，请选择其他辅导员。");
+      renderStudentMentors();
+      return;
+    }
+    preferredMentorInput.value = mentor.id;
+    selectedMentorName.textContent = mentor.name;
+    selectedMentorNotice.hidden = false;
+    showDispatchMessage(message, `已选择 ${mentor.name}，请填写并提交具体辅导需求。`, true);
+    form.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function clearPreferredMentor() {
+    preferredMentorInput.value = "";
+    selectedMentorName.textContent = "";
+    selectedMentorNotice.hidden = true;
+  }
+
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     if (deadline.value < startDate.value) {
       showDispatchMessage(message, "截止日期不能早于希望开始日期。");
+      return;
+    }
+
+    const preferredMentorId = preferredMentorInput.value;
+    const preferredMentor = preferredMentorId
+      ? getBookableMentors().find((mentor) => mentor.id === preferredMentorId)
+      : null;
+    if (preferredMentorId && !preferredMentor) {
+      showDispatchMessage(message, "该辅导员目前不可预约，请重新选择。");
+      clearPreferredMentor();
+      renderStudentMentors();
       return;
     }
 
@@ -356,6 +432,7 @@ function initStudentDispatch() {
       description: document.querySelector("#requestDescription").value.trim(),
       status: "pending",
       applications: [],
+      preferredMentorId: preferredMentor?.id || "",
       assignedMentorId: "",
       reviewedAt: "",
       studentBookedAt: "",
@@ -380,13 +457,24 @@ function initStudentDispatch() {
     writeDispatchStorage(dispatchStorageKeys.studentIdentity, requester);
 
     form.reset();
+    clearPreferredMentor();
     document.querySelector("#requesterName").value = requester.name;
     document.querySelector("#requesterContact").value = requester.contact;
     startDate.min = today;
     deadline.min = today;
-    showDispatchMessage(message, `需求 ${request.id} 已提交，联系方式仅店长端可见。`, true);
+    showDispatchMessage(message, preferredMentor
+      ? `预约申请 ${request.id} 已发送给 ${preferredMentor.name}，联系方式仅店长端可见。`
+      : `需求 ${request.id} 已提交，联系方式仅店长端可见。`, true);
     renderStudentRequests();
+    renderStudentMentors();
   });
+
+  mentorDirectory.addEventListener("click", (event) => {
+    const requestButton = event.target.closest("[data-request-mentor]");
+    if (requestButton) selectPreferredMentor(requestButton.dataset.requestMentor);
+  });
+
+  clearPreferredMentorButton.addEventListener("click", clearPreferredMentor);
 
   list.addEventListener("click", (event) => {
     const bookButton = event.target.closest("[data-book-mentor]");
@@ -404,17 +492,21 @@ function initStudentDispatch() {
   });
 
   window.addEventListener("storage", (event) => {
-    if ([dispatchStorageKeys.requests, dispatchStorageKeys.mentors].includes(event.key)) renderStudentRequests();
+    if ([dispatchStorageKeys.requests, dispatchStorageKeys.mentors, dispatchStorageKeys.mentorAccounts].includes(event.key)) {
+      renderStudentRequests();
+      renderStudentMentors();
+    }
   });
 
   renderStudentRequests();
+  renderStudentMentors();
 }
 
 function mentorOrderMarkup(request, mentor, mode) {
   const score = mentor ? matchingScore(request, mentor) : 0;
   let action = '<button class="dispatch-primary" type="button" disabled>请先保存辅导员资料</button>';
   if (mentor && mode === "open") {
-    action = `<button class="dispatch-primary" type="button" data-apply-request="${escapeDispatchHtml(request.id)}">立即抢单</button>`;
+    action = `<button class="dispatch-primary" type="button" data-apply-request="${escapeDispatchHtml(request.id)}">${request.preferredMentorId === mentor.id ? "接受预约申请" : "立即抢单"}</button>`;
   }
   if (mentor && mode === "review") {
     action = '<span class="status-pill status-applied">已抢单，等待店长审核</span>';
@@ -434,6 +526,7 @@ function mentorOrderMarkup(request, mentor, mode) {
       <div class="order-card-top"><span class="order-id">${escapeDispatchHtml(request.id)}</span>${dispatchStatusMarkup(request.status)}</div>
       <h3>${escapeDispatchHtml(request.subject)}</h3>
       ${orderMetaMarkup(request)}
+      ${request.preferredMentorId === mentor?.id ? '<span class="preferred-mentor-line">学员向你发起预约申请</span>' : ""}
       <p class="order-description">${escapeDispatchHtml(request.description)}</p>
       <div class="order-card-top"><span class="matching-score">与你的资料匹配度 ${score}%</span><span class="privacy-mask">学员联系方式不可见</span></div>
       <div class="order-actions">${action}</div>
@@ -581,6 +674,7 @@ function initMentorDispatch(accountId) {
     document.querySelector("#mentorDispatchCountry").value = mentor.country || "";
     document.querySelector("#mentorDispatchCity").value = mentor.city || "";
     document.querySelector("#mentorDispatchArea").value = mentor.area || "";
+    document.querySelector("#mentorAvailability").value = mentor.availability || "";
     document.querySelector("#mentorBio").value = mentor.bio || "";
     document.querySelector("#mentorProofState").textContent = contact.proofName
       ? `已上传：${contact.proofName}；重新选择文件可替换。`
@@ -594,8 +688,11 @@ function initMentorDispatch(accountId) {
     const openRequests = requests
       .filter((request) => ["pending", "applied"].includes(request.status)
         && !request.assignedMentorId
+        && (!request.preferredMentorId || request.preferredMentorId === mentor?.id)
         && (!mentor || !(request.applications || []).includes(mentor.id)))
-      .sort((a, b) => (mentor ? matchingScore(b, mentor) - matchingScore(a, mentor) : 0) || new Date(b.createdAt) - new Date(a.createdAt));
+      .sort((a, b) => Number(b.preferredMentorId === mentor?.id) - Number(a.preferredMentorId === mentor?.id)
+        || (mentor ? matchingScore(b, mentor) - matchingScore(a, mentor) : 0)
+        || new Date(b.createdAt) - new Date(a.createdAt));
     const assignments = mentor
       ? requests.filter((request) => (
         (!request.assignedMentorId && request.status === "applied" && (request.applications || []).includes(mentor.id))
@@ -643,6 +740,7 @@ function initMentorDispatch(accountId) {
       country: document.querySelector("#mentorDispatchCountry").value.trim(),
       city: document.querySelector("#mentorDispatchCity").value.trim(),
       area: document.querySelector("#mentorDispatchArea").value.trim(),
+      availability: document.querySelector("#mentorAvailability").value.trim(),
       bio: document.querySelector("#mentorBio").value.trim(),
       active: true,
       createdAt: existingIndex >= 0 ? mentors[existingIndex].createdAt : new Date().toISOString(),
@@ -684,7 +782,8 @@ function initMentorDispatch(accountId) {
     const request = requests.find((item) => item.id === requestId);
     if (!request) return;
 
-    if (applyButton && !request.assignedMentorId) {
+    if (applyButton && !request.assignedMentorId
+      && (!request.preferredMentorId || request.preferredMentorId === mentor.id)) {
       request.applications = [...new Set([...(request.applications || []), mentor.id])];
       request.status = "applied";
     }
@@ -714,6 +813,7 @@ function managerMentorOptionMarkup(request, selectedId = "") {
 function managerRequestMarkup(request, studentContacts, mentorContacts) {
   const requester = studentContacts[request.id] || { name: "未记录", contact: "未记录" };
   const assignedMentor = getDispatchMentors().find((mentor) => mentor.id === request.assignedMentorId);
+  const preferredMentor = getDispatchMentors().find((mentor) => mentor.id === request.preferredMentorId);
   const assignedContact = assignedMentor ? formatMentorContact(mentorContacts[assignedMentor.id]) : "尚未派单";
   const appliedCount = (request.applications || []).length;
 
@@ -728,6 +828,7 @@ function managerRequestMarkup(request, studentContacts, mentorContacts) {
           <h3>${escapeDispatchHtml(request.major)} · ${escapeDispatchHtml(request.subject)}</h3>
           ${orderMetaMarkup(request)}
           <p class="order-description">${escapeDispatchHtml(request.description)}</p>
+          ${preferredMentor ? `<div class="private-box preferred-request-box"><strong>学员预约意向</strong><span>${escapeDispatchHtml(preferredMentor.name)} · ${request.applications?.includes(preferredMentor.id) ? "辅导员已接受，等待审核" : "等待辅导员接受预约申请"}</span></div>` : ""}
           <div class="private-box">
             <strong>学员联系方式（仅店长可见）</strong>
             <span>${escapeDispatchHtml(requester.name)} · ${escapeDispatchHtml(requester.contact)}</span>
@@ -764,6 +865,7 @@ function managerMentorCardMarkup(mentor, mentorContacts) {
       <div class="order-card-top"><h3>${escapeDispatchHtml(mentor.name)}</h3><span class="order-id">${escapeDispatchHtml(mentor.id)}</span></div>
       <div class="order-meta"><span>${escapeDispatchHtml(mentor.major)}</span><span>${escapeDispatchHtml(mentor.rate)}</span><span>${escapeDispatchHtml([mentor.country, mentor.city, mentor.area].filter(Boolean).join(" · "))}</span></div>
       <p><strong>科目：</strong>${escapeDispatchHtml(mentor.subjects)}</p>
+      <p><strong>可预约时间：</strong>${escapeDispatchHtml(mentor.availability || "请向店长确认具体时间")}</p>
       <p>${escapeDispatchHtml(mentor.bio)}</p>
       <div class="mentor-contact">${escapeDispatchHtml(formatMentorContact(contact))}</div>
       <div class="mentor-contact">认证证明：${proofMarkup}</div>
