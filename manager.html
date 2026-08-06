@@ -37,7 +37,7 @@
         <div>
           <p class="dispatch-eyebrow">Private dispatch console</p>
           <h1>你是双方信息的唯一中转</h1>
-          <p>集中查看学员需求和辅导员资料，按专业、具体科目与地区匹配，派单后继续由平台协调双方沟通。</p>
+          <p>集中查看学员需求和辅导员抢单结果，审核适合的辅导员并派单，学员预约后继续由平台协调双方沟通。</p>
         </div>
         <div class="privacy-card private">
           <strong>仅店长端显示双方联系方式</strong>
@@ -46,10 +46,10 @@
       </section>
 
       <section class="manager-stats" aria-label="派单统计">
-        <article><span>待匹配</span><strong id="managerPendingCount">0</strong></article>
-        <article><span>已有申请</span><strong id="managerAppliedCount">0</strong></article>
-        <article><span>已派单</span><strong id="managerAssignedCount">0</strong></article>
-        <article><span>已确认 / 完成</span><strong id="managerAcceptedCount">0</strong></article>
+        <article><span>等待抢单</span><strong id="managerPendingCount">0</strong></article>
+        <article><span>抢单待审核</span><strong id="managerAppliedCount">0</strong></article>
+        <article><span>审核通过</span><strong id="managerAssignedCount">0</strong></article>
+        <article><span>已预约 / 完成</span><strong id="managerAcceptedCount">0</strong></article>
       </section>
 
       <section class="dispatch-panel manager-verification-panel">
@@ -63,10 +63,10 @@
 
       <section class="dispatch-panel manager-control-panel">
         <div class="panel-heading">
-          <div><p class="dispatch-eyebrow">Dispatch board</p><h2>需求与派单</h2></div>
+          <div><p class="dispatch-eyebrow">Dispatch board</p><h2>需求、抢单审核与派单</h2></div>
           <div class="manager-filters">
             <input id="managerSearch" type="search" placeholder="搜索订单、专业、科目或地区" />
-            <select id="managerStatusFilter"><option value="all">全部状态</option><option value="pending">待匹配</option><option value="applied">已有申请</option><option value="assigned">已派单</option><option value="accepted">已确认</option><option value="completed">已完成</option></select>
+            <select id="managerStatusFilter"><option value="all">全部状态</option><option value="pending">等待抢单</option><option value="applied">抢单待审核</option><option value="assigned">审核通过</option><option value="accepted">学员已预约</option><option value="completed">已完成</option></select>
           </div>
         </div>
         <div class="dispatch-list manager-request-list" id="managerRequestList"></div>

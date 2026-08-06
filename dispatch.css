@@ -281,6 +281,20 @@ html[data-dispatch-role="manager"] .dispatch-primary { background: var(--manager
   font-weight: 800;
 }
 .order-description { padding: 12px; border-radius: 8px; background: #f6f8f8; }
+.approved-mentor-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(47, 125, 104, 0.28);
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f1faf6, #fbfdfc);
+}
+.approved-mentor-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.approved-mentor-heading > div { display: grid; gap: 5px; }
+.approved-mentor-heading h4 { margin: 0; font-size: 20px; }
+.approved-label { color: var(--student); font-size: 12px; font-weight: 900; }
+.approved-mentor-card p { color: var(--ink); }
+.approved-mentor-card .order-actions { padding-top: 2px; }
 .status-pill {
   display: inline-flex;
   min-height: 27px;

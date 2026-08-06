@@ -203,10 +203,10 @@ function dispatchRegion(request) {
 }
 
 const dispatchStatusLabels = {
-  pending: "待店长匹配",
-  applied: "已有辅导员申请",
-  assigned: "店长已派单",
-  accepted: "辅导员已确认",
+  pending: "等待辅导员抢单",
+  applied: "抢单待店长审核",
+  assigned: "店长审核通过",
+  accepted: "学员已预约",
   completed: "已完成"
 };
 
@@ -261,12 +261,40 @@ function showDispatchMessage(element, message, success = false) {
   element.classList.toggle("success", success);
 }
 
+function approvedMentorCardMarkup(request) {
+  if (!["assigned", "accepted", "completed"].includes(request.status) || !request.assignedMentorId) return "";
+  const mentor = getDispatchMentors().find((item) => item.id === request.assignedMentorId && item.active !== false);
+  if (!mentor) return "";
+  const booked = request.status === "accepted" || Boolean(request.studentBookedAt);
+  const action = request.status === "completed"
+    ? '<span class="status-pill status-completed">本次辅导已完成</span>'
+    : booked
+      ? '<button class="dispatch-secondary" type="button" disabled>已预约，等待店长协调</button>'
+      : `<button class="dispatch-primary" type="button" data-book-mentor="${escapeDispatchHtml(request.id)}">预约该辅导员</button>`;
+  return `
+    <section class="approved-mentor-card" aria-label="店长审核通过的辅导员名片">
+      <div class="approved-mentor-heading">
+        <div><span class="approved-label">店长审核通过</span><h4>${escapeDispatchHtml(mentor.name)}</h4></div>
+        <span class="order-id">${escapeDispatchHtml(mentor.id)}</span>
+      </div>
+      <div class="order-meta">
+        <span>${escapeDispatchHtml(mentor.major)}</span>
+        <span>${escapeDispatchHtml(mentor.rate)}</span>
+        <span>${escapeDispatchHtml([mentor.country, mentor.city, mentor.area].filter(Boolean).join(" · "))}</span>
+      </div>
+      <p><strong>可辅导科目：</strong>${escapeDispatchHtml(mentor.subjects)}</p>
+      <p>${escapeDispatchHtml(mentor.bio)}</p>
+      <span class="privacy-mask">名片不显示联系方式，预约后仍由店长中转</span>
+      <div class="order-actions">${action}</div>
+    </section>`;
+}
+
 function renderStudentRequestCard(request) {
   const statusText = {
-    pending: "店长尚未派单，请等待平台匹配。",
-    applied: "已有辅导员申请，店长正在筛选。",
-    assigned: "店长已选择辅导员，正在等待对方确认。",
-    accepted: "辅导员已确认，后续沟通由店长统一协调。",
+    pending: "需求已发布到辅导员抢单大厅，等待辅导员抢单。",
+    applied: "已有辅导员抢单，正在等待店长审核。",
+    assigned: "店长审核通过，辅导员名片已开放，你可以点击预约。",
+    accepted: "你已预约辅导员，后续沟通由店长统一协调。",
     completed: "本次辅导订单已完成。"
   }[request.status] || "等待平台处理。";
 
@@ -276,6 +304,7 @@ function renderStudentRequestCard(request) {
       <h3>${escapeDispatchHtml(request.subject)}</h3>
       ${orderMetaMarkup(request)}
       <p>${escapeDispatchHtml(statusText)}</p>
+      ${approvedMentorCardMarkup(request)}
       <span class="privacy-mask">辅导员联系方式由店长保管</span>
       <small>提交时间：${formatDispatchTime(request.createdAt)}</small>
     </article>`;
@@ -328,6 +357,8 @@ function initStudentDispatch() {
       status: "pending",
       applications: [],
       assignedMentorId: "",
+      reviewedAt: "",
+      studentBookedAt: "",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -357,25 +388,42 @@ function initStudentDispatch() {
     renderStudentRequests();
   });
 
+  list.addEventListener("click", (event) => {
+    const bookButton = event.target.closest("[data-book-mentor]");
+    if (!bookButton) return;
+    const requestIds = new Set(readDispatchStorage(dispatchStorageKeys.studentRequestIds, []));
+    const requests = getDispatchRequests();
+    const request = requests.find((item) => item.id === bookButton.dataset.bookMentor && requestIds.has(item.id));
+    if (!request || request.status !== "assigned" || !request.assignedMentorId) return;
+    request.status = "accepted";
+    request.studentBookedAt = new Date().toISOString();
+    request.updatedAt = request.studentBookedAt;
+    saveDispatchRequests(requests);
+    showDispatchMessage(message, "预约已提交，店长将继续中转双方沟通。", true);
+    renderStudentRequests();
+  });
+
+  window.addEventListener("storage", (event) => {
+    if ([dispatchStorageKeys.requests, dispatchStorageKeys.mentors].includes(event.key)) renderStudentRequests();
+  });
+
   renderStudentRequests();
 }
 
 function mentorOrderMarkup(request, mentor, mode) {
   const score = mentor ? matchingScore(request, mentor) : 0;
-  const applied = mentor ? (request.applications || []).includes(mentor.id) : false;
   let action = '<button class="dispatch-primary" type="button" disabled>请先保存辅导员资料</button>';
   if (mentor && mode === "open") {
-    action = applied
-      ? '<button class="dispatch-secondary" type="button" disabled>已申请，等待店长派单</button>'
-      : `<button class="dispatch-primary" type="button" data-apply-request="${escapeDispatchHtml(request.id)}">申请接单</button>`;
+    action = `<button class="dispatch-primary" type="button" data-apply-request="${escapeDispatchHtml(request.id)}">立即抢单</button>`;
+  }
+  if (mentor && mode === "review") {
+    action = '<span class="status-pill status-applied">已抢单，等待店长审核</span>';
   }
   if (mentor && mode === "assignment" && request.status === "assigned") {
-    action = `
-      <button class="dispatch-primary" type="button" data-accept-request="${escapeDispatchHtml(request.id)}">确认接单</button>
-      <button class="dispatch-danger" type="button" data-decline-request="${escapeDispatchHtml(request.id)}">无法接单</button>`;
+    action = '<span class="status-pill status-assigned">店长审核通过，等待学员预约</span>';
   }
   if (mentor && mode === "assignment" && request.status === "accepted") {
-    action = '<span class="status-pill status-accepted">已确认，等待店长协调</span>';
+    action = '<span class="status-pill status-accepted">学员已预约，等待店长协调</span>';
   }
   if (mentor && mode === "assignment" && request.status === "completed") {
     action = '<span class="status-pill status-completed">订单已完成</span>';
@@ -544,17 +592,22 @@ function initMentorDispatch(accountId) {
     profileState.textContent = mentor ? `已登记 · ${mentor.id}` : "尚未登记";
     const requests = getDispatchRequests();
     const openRequests = requests
-      .filter((request) => ["pending", "applied"].includes(request.status) && !request.assignedMentorId)
+      .filter((request) => ["pending", "applied"].includes(request.status)
+        && !request.assignedMentorId
+        && (!mentor || !(request.applications || []).includes(mentor.id)))
       .sort((a, b) => (mentor ? matchingScore(b, mentor) - matchingScore(a, mentor) : 0) || new Date(b.createdAt) - new Date(a.createdAt));
     const assignments = mentor
-      ? requests.filter((request) => request.assignedMentorId === mentor.id && ["assigned", "accepted", "completed"].includes(request.status))
+      ? requests.filter((request) => (
+        (!request.assignedMentorId && request.status === "applied" && (request.applications || []).includes(mentor.id))
+        || (request.assignedMentorId === mentor.id && ["assigned", "accepted", "completed"].includes(request.status))
+      ))
       : [];
     openList.innerHTML = openRequests.length
       ? openRequests.map((request) => mentorOrderMarkup(request, mentor, "open")).join("")
       : '<p class="empty-dispatch">当前没有开放的脱敏订单。</p>';
     assignmentList.innerHTML = assignments.length
-      ? assignments.map((request) => mentorOrderMarkup(request, mentor, "assignment")).join("")
-      : '<p class="empty-dispatch">店长尚未向你派单。</p>';
+      ? assignments.map((request) => mentorOrderMarkup(request, mentor, request.status === "applied" ? "review" : "assignment")).join("")
+      : '<p class="empty-dispatch">你还没有抢单或通过审核的订单。</p>';
   }
 
   profileForm.addEventListener("submit", async (event) => {
@@ -623,12 +676,10 @@ function initMentorDispatch(accountId) {
 
   document.addEventListener("click", (event) => {
     const applyButton = event.target.closest("[data-apply-request]");
-    const acceptButton = event.target.closest("[data-accept-request]");
-    const declineButton = event.target.closest("[data-decline-request]");
-    if (!applyButton && !acceptButton && !declineButton) return;
+    if (!applyButton) return;
     const mentor = currentMentor();
     if (!mentor) return;
-    const requestId = applyButton?.dataset.applyRequest || acceptButton?.dataset.acceptRequest || declineButton?.dataset.declineRequest;
+    const requestId = applyButton.dataset.applyRequest;
     const requests = getDispatchRequests();
     const request = requests.find((item) => item.id === requestId);
     if (!request) return;
@@ -637,17 +688,13 @@ function initMentorDispatch(accountId) {
       request.applications = [...new Set([...(request.applications || []), mentor.id])];
       request.status = "applied";
     }
-    if (acceptButton && request.assignedMentorId === mentor.id && request.status === "assigned") {
-      request.status = "accepted";
-    }
-    if (declineButton && request.assignedMentorId === mentor.id && request.status === "assigned") {
-      request.applications = (request.applications || []).filter((id) => id !== mentor.id);
-      request.assignedMentorId = "";
-      request.status = request.applications.length ? "applied" : "pending";
-    }
     request.updatedAt = new Date().toISOString();
     saveDispatchRequests(requests);
     renderMentorOrders();
+  });
+
+  window.addEventListener("storage", (event) => {
+    if ([dispatchStorageKeys.requests, dispatchStorageKeys.mentors].includes(event.key)) renderMentorOrders();
   });
 
   populateMentorForm();
@@ -655,11 +702,12 @@ function initMentorDispatch(accountId) {
 }
 
 function managerMentorOptionMarkup(request, selectedId = "") {
-  const matches = matchingMentorsForRequest(request);
-  if (!matches.length) return '<option value="">暂无辅导员资料</option>';
-  return '<option value="">选择辅导员</option>' + matches.map(({ mentor, score, applied }) => {
+  const appliedIds = new Set(request.applications || []);
+  const matches = matchingMentorsForRequest(request).filter(({ mentor }) => appliedIds.has(mentor.id));
+  if (!matches.length) return '<option value="">暂无辅导员抢单</option>';
+  return '<option value="">选择已抢单辅导员</option>' + matches.map(({ mentor, score }) => {
     const selected = mentor.id === selectedId ? " selected" : "";
-    return `<option value="${escapeDispatchHtml(mentor.id)}"${selected}>${escapeDispatchHtml(mentor.name)} · 匹配 ${score}%${applied ? " · 已申请" : ""} · ${escapeDispatchHtml(mentor.city)}</option>`;
+    return `<option value="${escapeDispatchHtml(mentor.id)}"${selected}>${escapeDispatchHtml(mentor.name)} · 匹配 ${score}% · 已抢单 · ${escapeDispatchHtml(mentor.city)}</option>`;
   }).join("");
 }
 
@@ -685,21 +733,21 @@ function managerRequestMarkup(request, studentContacts, mentorContacts) {
             <span>${escapeDispatchHtml(requester.name)} · ${escapeDispatchHtml(requester.contact)}</span>
           </div>
           <div class="private-box">
-            <strong>已派辅导员联系方式（仅店长可见）</strong>
+            <strong>审核通过辅导员联系方式（仅店长可见）</strong>
             <span>${assignedMentor ? `${escapeDispatchHtml(assignedMentor.name)} · ${escapeDispatchHtml(assignedContact)}` : "尚未选择辅导员"}</span>
           </div>
         </div>
         <div class="dispatch-list">
-          <div class="order-card-top"><strong>匹配与派单</strong><span class="step-badge">${appliedCount} 位已申请</span></div>
+          <div class="order-card-top"><strong>抢单审核</strong><span class="step-badge">${appliedCount} 位已抢单</span></div>
           <div class="assignment-controls">
-            <label><span>选择辅导员</span><select data-mentor-select="${escapeDispatchHtml(request.id)}">${managerMentorOptionMarkup(request, request.assignedMentorId)}</select></label>
-            <button class="dispatch-primary" type="button" data-assign-request="${escapeDispatchHtml(request.id)}">${request.assignedMentorId ? "重新派单" : "确认派单"}</button>
+            <label><span>选择已抢单辅导员</span><select data-mentor-select="${escapeDispatchHtml(request.id)}">${managerMentorOptionMarkup(request, request.assignedMentorId)}</select></label>
+            <button class="dispatch-primary" type="button" data-assign-request="${escapeDispatchHtml(request.id)}"${appliedCount ? "" : " disabled"}>${request.assignedMentorId ? "重新审核" : "审核通过并派单"}</button>
           </div>
           <div class="order-actions">
-            ${["accepted", "assigned"].includes(request.status) ? `<button class="dispatch-secondary" type="button" data-complete-request="${escapeDispatchHtml(request.id)}">标记完成</button>` : ""}
+            ${request.status === "accepted" ? `<button class="dispatch-secondary" type="button" data-complete-request="${escapeDispatchHtml(request.id)}">标记完成</button>` : ""}
             ${request.status === "completed" ? `<button class="dispatch-secondary" type="button" data-reopen-request="${escapeDispatchHtml(request.id)}">重新打开</button>` : ""}
           </div>
-          <span class="privacy-mask">双方页面均不显示对方联系方式</span>
+          <span class="privacy-mask">审核通过后学员只看到辅导员名片，不显示联系方式</span>
         </div>
       </div>
     </article>`;
@@ -849,19 +897,26 @@ function initManagerDispatch(onInvalidSession) {
 
     if (assignButton) {
       const select = document.querySelector(`[data-mentor-select="${CSS.escape(requestId)}"]`);
-      if (!select?.value) return;
+      if (!select?.value || !(request.applications || []).includes(select.value)) return;
       request.assignedMentorId = select.value;
       request.status = "assigned";
-      request.applications = [...new Set([...(request.applications || []), select.value])];
+      request.reviewedAt = new Date().toISOString();
+      request.studentBookedAt = "";
     }
-    if (completeButton && ["assigned", "accepted"].includes(request.status)) request.status = "completed";
+    if (completeButton && request.status === "accepted") request.status = "completed";
     if (reopenButton && request.status === "completed") {
-      request.assignedMentorId = "";
-      request.status = request.applications?.length ? "applied" : "pending";
+      request.status = request.assignedMentorId ? "assigned" : (request.applications?.length ? "applied" : "pending");
+      request.studentBookedAt = "";
     }
     request.updatedAt = new Date().toISOString();
     saveDispatchRequests(requests);
     renderManagerDispatch();
+  });
+
+  window.addEventListener("storage", (event) => {
+    if ([dispatchStorageKeys.requests, dispatchStorageKeys.mentors, dispatchStorageKeys.mentorAccounts].includes(event.key)) {
+      renderManagerDispatch();
+    }
   });
 
   renderManagerDispatch();
