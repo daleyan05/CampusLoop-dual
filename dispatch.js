@@ -5,6 +5,8 @@ const dispatchStorageKeys = {
   studentContacts: "campusLoopDispatchStudentContacts",
   studentRequestIds: "campusLoopDispatchStudentRequestIds",
   studentIdentity: "campusLoopDispatchStudentIdentity",
+  studentAccounts: "campusLoopStudentAccounts",
+  studentAuthSession: "campusLoopStudentAuthSession",
   mentors: "campusLoopDispatchMentors",
   mentorContacts: "campusLoopDispatchMentorContacts",
   mentorIdentity: "campusLoopDispatchMentorIdentity",
@@ -119,6 +121,14 @@ function getMentorAccounts() {
 
 function saveMentorAccounts(accounts) {
   writeDispatchStorage(dispatchStorageKeys.mentorAccounts, accounts);
+}
+
+function getStudentAccounts() {
+  return readDispatchStorage(dispatchStorageKeys.studentAccounts, []);
+}
+
+function saveStudentAccounts(accounts) {
+  writeDispatchStorage(dispatchStorageKeys.studentAccounts, accounts);
 }
 
 function makeDispatchId(prefix) {
@@ -479,7 +489,101 @@ function studentMentorBookingCardMarkup(mentor, requests) {
     </article>`;
 }
 
-function initStudentDispatch() {
+function initStudentAuth() {
+  const authGate = document.querySelector("#studentAuthGate");
+  const studentApp = document.querySelector("#studentApp");
+  const loginForm = document.querySelector("#studentLoginForm");
+  const registerForm = document.querySelector("#studentRegisterForm");
+  const loginMessage = document.querySelector("#studentLoginMessage");
+  const registerMessage = document.querySelector("#studentRegisterMessage");
+  const logoutButton = document.querySelector("#studentLogoutButton");
+  let dispatchInitialized = false;
+
+  function showStudentApp(account) {
+    authGate.hidden = true;
+    studentApp.hidden = false;
+    logoutButton.hidden = false;
+    if (!dispatchInitialized) {
+      initStudentDispatch(account.id);
+      dispatchInitialized = true;
+    }
+  }
+
+  const sessionAccountId = sessionStorage.getItem(dispatchStorageKeys.studentAuthSession);
+  const sessionAccount = getStudentAccounts().find((account) => account.id === sessionAccountId);
+  if (sessionAccount) showStudentApp(sessionAccount);
+  else sessionStorage.removeItem(dispatchStorageKeys.studentAuthSession);
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const accountValue = normalizeDispatchText(document.querySelector("#studentLoginAccount").value);
+    const password = document.querySelector("#studentLoginPassword").value;
+    const account = getStudentAccounts().find((item) => item.loginAccount === accountValue);
+    if (!account || (await hashManagerPassword(password, account.passwordSalt)) !== account.passwordHash) {
+      showDispatchMessage(loginMessage, "账号或密码不正确。");
+      return;
+    }
+
+    sessionStorage.setItem(dispatchStorageKeys.studentAuthSession, account.id);
+    document.querySelector("#studentLoginPassword").value = "";
+    showDispatchMessage(loginMessage, "登录成功。", true);
+    showStudentApp(account);
+  });
+
+  registerForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const submitButton = registerForm.querySelector('button[type="submit"]');
+    const displayName = document.querySelector("#studentRegisterName").value.trim();
+    const loginAccount = normalizeDispatchText(document.querySelector("#studentRegisterAccount").value);
+    const contact = document.querySelector("#studentRegisterContact").value.trim();
+    const password = document.querySelector("#studentRegisterPassword").value;
+    const confirmPassword = document.querySelector("#studentRegisterConfirmPassword").value;
+    if (getStudentAccounts().some((account) => account.loginAccount === loginAccount)) {
+      showDispatchMessage(registerMessage, "该手机号或邮箱已经注册，请直接登录。");
+      return;
+    }
+    if (password.length < 8) {
+      showDispatchMessage(registerMessage, "密码至少需要 8 位。");
+      return;
+    }
+    if (password !== confirmPassword) {
+      showDispatchMessage(registerMessage, "两次输入的密码不一致。");
+      return;
+    }
+
+    submitButton.disabled = true;
+    try {
+      const passwordSalt = createManagerToken();
+      const account = {
+        id: makeDispatchId("SACC"),
+        displayName,
+        loginAccount,
+        contact,
+        passwordSalt,
+        passwordHash: await hashManagerPassword(password, passwordSalt),
+        requestIds: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      const accounts = getStudentAccounts();
+      accounts.unshift(account);
+      saveStudentAccounts(accounts);
+      sessionStorage.setItem(dispatchStorageKeys.studentAuthSession, account.id);
+      registerForm.reset();
+      showDispatchMessage(registerMessage, "登记注册成功，已为你登录。", true);
+      showStudentApp(account);
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+
+  logoutButton.addEventListener("click", () => {
+    sessionStorage.removeItem(dispatchStorageKeys.studentAuthSession);
+    window.location.reload();
+  });
+}
+
+function initStudentDispatch(accountId) {
   const form = document.querySelector("#requestForm");
   const message = document.querySelector("#requestMessage");
   const list = document.querySelector("#studentRequestList");
@@ -494,14 +598,22 @@ function initStudentDispatch() {
   startDate.min = today;
   deadline.min = today;
 
-  const identity = readDispatchStorage(dispatchStorageKeys.studentIdentity, null);
-  if (identity) {
-    document.querySelector("#requesterName").value = identity.name || "";
-    document.querySelector("#requesterContact").value = identity.contact || "";
+  const signedInAccount = getStudentAccounts().find((account) => account.id === accountId);
+  if (!signedInAccount) return;
+  const requesterNameInput = document.querySelector("#requesterName");
+  const requesterContactInput = document.querySelector("#requesterContact");
+  requesterNameInput.value = signedInAccount.displayName || "";
+  requesterContactInput.value = signedInAccount.contact || signedInAccount.loginAccount || "";
+  requesterNameInput.readOnly = true;
+  requesterContactInput.readOnly = true;
+
+  function currentStudentRequestIds() {
+    const account = getStudentAccounts().find((item) => item.id === accountId);
+    return new Set(Array.isArray(account?.requestIds) ? account.requestIds : []);
   }
 
   function renderStudentRequests() {
-    const requestIds = new Set(readDispatchStorage(dispatchStorageKeys.studentRequestIds, []));
+    const requestIds = currentStudentRequestIds();
     const requests = getDispatchRequests().filter((request) => requestIds.has(request.id));
     list.innerHTML = requests.length
       ? requests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map(renderStudentRequestCard).join("")
@@ -576,13 +688,14 @@ function initStudentDispatch() {
       progressNote: "",
       progressUpdatedAt: "",
       deliverables: [],
+      studentAccountId: accountId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
     const requester = {
-      name: document.querySelector("#requesterName").value.trim(),
-      contact: document.querySelector("#requesterContact").value.trim()
+      name: signedInAccount.displayName,
+      contact: signedInAccount.contact || signedInAccount.loginAccount
     };
     const requests = getDispatchRequests();
     requests.unshift(request);
@@ -591,15 +704,18 @@ function initStudentDispatch() {
     const contacts = readDispatchStorage(dispatchStorageKeys.studentContacts, {});
     contacts[request.id] = requester;
     writeDispatchStorage(dispatchStorageKeys.studentContacts, contacts);
-    const requestIds = readDispatchStorage(dispatchStorageKeys.studentRequestIds, []);
-    requestIds.unshift(request.id);
-    writeDispatchStorage(dispatchStorageKeys.studentRequestIds, [...new Set(requestIds)]);
-    writeDispatchStorage(dispatchStorageKeys.studentIdentity, requester);
+    const accounts = getStudentAccounts();
+    const account = accounts.find((item) => item.id === accountId);
+    if (account) {
+      account.requestIds = [...new Set([request.id, ...(Array.isArray(account.requestIds) ? account.requestIds : [])])];
+      account.updatedAt = new Date().toISOString();
+      saveStudentAccounts(accounts);
+    }
 
     form.reset();
     clearPreferredMentor();
-    document.querySelector("#requesterName").value = requester.name;
-    document.querySelector("#requesterContact").value = requester.contact;
+    requesterNameInput.value = requester.name;
+    requesterContactInput.value = requester.contact;
     startDate.min = today;
     deadline.min = today;
     showDispatchMessage(message, preferredMentor
@@ -619,7 +735,7 @@ function initStudentDispatch() {
   list.addEventListener("click", (event) => {
     const bookButton = event.target.closest("[data-book-mentor]");
     if (!bookButton) return;
-    const requestIds = new Set(readDispatchStorage(dispatchStorageKeys.studentRequestIds, []));
+    const requestIds = currentStudentRequestIds();
     const requests = getDispatchRequests();
     const request = requests.find((item) => item.id === bookButton.dataset.bookMentor && requestIds.has(item.id));
     if (!request || request.status !== "assigned" || !request.assignedMentorId) return;
@@ -981,9 +1097,13 @@ function initProgressPage() {
       return { error: "双方审核与预约尚未完成，暂时不能进入辅导进度。" };
     }
     if (role === "student") {
-      const requestIds = new Set(readDispatchStorage(dispatchStorageKeys.studentRequestIds, []));
-      if (!requestIds.has(request.id)) return { error: "当前学员端没有查看该订单的权限。" };
-      return { request };
+      const sessionAccountId = sessionStorage.getItem(dispatchStorageKeys.studentAuthSession);
+      const account = getStudentAccounts().find((item) => item.id === sessionAccountId);
+      const requestIds = new Set(Array.isArray(account?.requestIds) ? account.requestIds : []);
+      if (!account || !requestIds.has(request.id) || (request.studentAccountId && request.studentAccountId !== account.id)) {
+        return { error: "请先登录发布该订单的找辅导账号。" };
+      }
+      return { request, account };
     }
 
     const sessionAccountId = sessionStorage.getItem(dispatchStorageKeys.mentorAuthSession);
@@ -1485,7 +1605,7 @@ async function initManagerAccess() {
   });
 }
 
-if (dispatchRole === "student") initStudentDispatch();
+if (dispatchRole === "student") initStudentAuth();
 if (dispatchRole === "mentor") initMentorAuth();
 if (dispatchRole === "manager") initManagerAccess();
 if (dispatchRole === "progress") initProgressPage();

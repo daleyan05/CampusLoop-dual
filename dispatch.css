@@ -227,12 +227,14 @@ html[data-dispatch-role="mentor"] textarea:focus { border-color: var(--mentor); 
 .selected-mentor-notice strong { font-size: 19px; }
 .selected-mentor-notice small { color: var(--muted); line-height: 1.5; }
 
-.mentor-auth-gate { padding: clamp(34px, 6vw, 72px) clamp(18px, 5vw, 68px); }
-.mentor-auth-intro { display: grid; gap: 16px; max-width: 920px; margin-bottom: 24px; }
-.mentor-auth-intro h1 { margin: 0; font-size: clamp(36px, 5vw, 64px); line-height: 1; letter-spacing: -0.04em; }
-.mentor-auth-intro > p { margin: 0; color: var(--muted); line-height: 1.7; }
-.mentor-auth-grid { display: grid; grid-template-columns: minmax(280px, 0.7fr) minmax(0, 1.3fr); gap: 18px; align-items: start; }
-.mentor-auth-grid h2 { margin: 0; font-size: 30px; }
+.mentor-auth-gate, .student-auth-gate { padding: clamp(34px, 6vw, 72px) clamp(18px, 5vw, 68px); }
+.mentor-auth-intro, .student-auth-intro { display: grid; gap: 16px; max-width: 920px; margin-bottom: 24px; }
+.mentor-auth-intro h1, .student-auth-intro h1 { margin: 0; font-size: clamp(36px, 5vw, 64px); line-height: 1; letter-spacing: -0.04em; }
+.mentor-auth-intro > p, .student-auth-intro > p { margin: 0; color: var(--muted); line-height: 1.7; }
+.mentor-auth-grid, .student-auth-grid { display: grid; grid-template-columns: minmax(280px, 0.7fr) minmax(0, 1.3fr); gap: 18px; align-items: start; }
+.mentor-auth-grid h2, .student-auth-grid h2 { margin: 0; font-size: 30px; }
+.student-auth-gate { background: radial-gradient(circle at 15% 4%, rgba(47, 125, 104, 0.11), transparent 28%); }
+.student-auth-intro .privacy-card { max-width: 760px; }
 
 .consent-row { grid-template-columns: auto minmax(0, 1fr); align-items: start; font-weight: 600; line-height: 1.5; }
 .consent-row input { width: 18px; height: 18px; min-height: 0; margin: 2px 0 0; }
@@ -554,7 +556,7 @@ html[data-dispatch-role="mentor"] .progress-track > span { background: linear-gr
 .manager-password-form .dispatch-message { grid-column: 1 / -1; }
 
 @media (max-width: 1050px) {
-  .dispatch-hero, .student-grid, .mentor-grid, .manager-order-grid, .mentor-auth-grid, .progress-layout { grid-template-columns: 1fr; }
+  .dispatch-hero, .student-grid, .mentor-grid, .manager-order-grid, .mentor-auth-grid, .student-auth-grid, .progress-layout { grid-template-columns: 1fr; }
   .manager-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mentor-directory, .student-mentor-directory { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

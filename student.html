@@ -5,15 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CampusLoop 找辅导入口</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="dispatch.css?v=20260806-review" />
+    <link rel="stylesheet" href="dispatch.css?v=20260806-student-auth" />
   </head>
   <body>
     <header class="dispatch-topbar">
       <a class="dispatch-brand" href="index.html"><span>CL</span><strong>CampusLoop Dispatch</strong></a>
-      <div class="dispatch-role-badge student">找辅导入口</div>
+      <div class="manager-header-actions">
+        <div class="dispatch-role-badge student">找辅导入口</div>
+        <button class="dispatch-secondary manager-logout" id="studentLogoutButton" type="button" hidden>退出登录</button>
+      </div>
     </header>
 
     <main class="dispatch-shell">
+      <section class="student-auth-gate" id="studentAuthGate">
+        <div class="student-auth-intro">
+          <p class="dispatch-eyebrow">Student account access</p>
+          <h1>先登记注册，再寻找辅导员</h1>
+          <p>注册后才能发布辅导需求、申请预约辅导员、查看自己的订单进度和接收店长审核通过的完成作业。</p>
+          <div class="privacy-card">
+            <strong>账号与隐私说明</strong>
+            <span>联系方式只提供给平台店长，不会展示给辅导员。每个账号只显示自己发布的需求与预约记录。</span>
+          </div>
+        </div>
+
+        <div class="student-auth-grid">
+          <form class="dispatch-panel dispatch-form" id="studentLoginForm">
+            <div><p class="dispatch-eyebrow">Student login</p><h2>找辅导账号登录</h2></div>
+            <label><span>登录账号</span><input id="studentLoginAccount" type="text" required autocomplete="username" placeholder="手机号或邮箱" /></label>
+            <label><span>密码</span><input id="studentLoginPassword" type="password" required autocomplete="current-password" /></label>
+            <p class="dispatch-message" id="studentLoginMessage" aria-live="polite"></p>
+            <button class="dispatch-primary" type="submit">登录找辅导端</button>
+          </form>
+
+          <form class="dispatch-panel dispatch-form" id="studentRegisterForm">
+            <div><p class="dispatch-eyebrow">New student</p><h2>登记注册</h2></div>
+            <div class="form-grid two">
+              <label><span>称呼</span><input id="studentRegisterName" type="text" required autocomplete="name" placeholder="例如：李同学" /></label>
+              <label><span>手机号或邮箱（登录账号）</span><input id="studentRegisterAccount" type="text" required autocomplete="username" placeholder="用于登录" /></label>
+              <label><span>平台联系微信 / 手机号</span><input id="studentRegisterContact" type="text" required autocomplete="tel" placeholder="仅店长可见" /></label>
+              <label><span>设置密码</span><input id="studentRegisterPassword" type="password" required minlength="8" autocomplete="new-password" placeholder="至少 8 位" /></label>
+              <label><span>确认密码</span><input id="studentRegisterConfirmPassword" type="password" required minlength="8" autocomplete="new-password" /></label>
+            </div>
+            <label class="consent-row"><input id="studentRegisterConsent" type="checkbox" required /><span>我同意由平台店长保管我的联系方式，并仅用于辅导匹配和订单协调。</span></label>
+            <p class="dispatch-message" id="studentRegisterMessage" aria-live="polite"></p>
+            <button class="dispatch-primary" type="submit">注册并进入找辅导端</button>
+          </form>
+        </div>
+      </section>
+
+      <div id="studentApp" hidden>
       <section class="dispatch-hero student-hero">
         <div>
           <p class="dispatch-eyebrow">Tutoring request</p>
@@ -83,7 +123,7 @@
 
         <aside class="dispatch-panel status-panel">
           <div class="panel-heading"><div><p class="dispatch-eyebrow">My requests</p><h2>我的需求进度</h2></div></div>
-          <p class="panel-note">本机只显示使用当前联系方式提交的需求。</p>
+          <p class="panel-note">这里只显示当前登录账号提交的需求。</p>
           <div class="dispatch-list" id="studentRequestList"></div>
         </aside>
       </section>
@@ -96,8 +136,9 @@
         <p class="panel-note">查看专业、科目、地区、价格和可预约时间。点击申请后，请在上方补充具体辅导需求；双方联系方式仍由店长保管。</p>
         <div class="student-mentor-directory" id="studentMentorDirectory"></div>
       </section>
+      </div>
     </main>
-    <script src="i18n.js?v=20260806-review"></script>
-    <script src="dispatch.js?v=20260806-review"></script>
+    <script src="i18n.js?v=20260806-student-auth"></script>
+    <script src="dispatch.js?v=20260806-student-auth"></script>
   </body>
 </html>
