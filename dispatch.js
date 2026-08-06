@@ -264,6 +264,94 @@ function showDispatchMessage(element, message, success = false) {
   element.classList.toggle("success", success);
 }
 
+const deliverableFileLimit = 2 * 1024 * 1024;
+const deliverableExtensions = new Set(["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip", "png", "jpg", "jpeg", "gif", "webp"]);
+
+function requestProgress(request) {
+  if (request?.status === "completed" && request?.progress == null) return 100;
+  const value = Number(request?.progress ?? 0);
+  return Number.isFinite(value) ? Math.min(100, Math.max(0, Math.round(value))) : 0;
+}
+
+function formatDeliverableSize(size) {
+  const bytes = Number(size) || 0;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function deliverableExtension(name) {
+  return String(name || "").split(".").pop()?.toLocaleLowerCase("en-US") || "";
+}
+
+function deliverableDataUrlIsSafe(deliverable) {
+  if (!deliverableExtensions.has(deliverableExtension(deliverable?.name))) return false;
+  return /^data:(?:application\/(?:pdf|msword|vnd\.ms-excel|vnd\.ms-powerpoint|vnd\.openxmlformats-officedocument\.(?:wordprocessingml\.document|spreadsheetml\.sheet|presentationml\.presentation)|zip|x-zip-compressed|octet-stream)|image\/(?:png|jpe?g|gif|webp));base64,/i.test(deliverable?.dataUrl || "");
+}
+
+function readDeliverableFile(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) return reject(new Error("请选择要提交的完成作业。"));
+    if (!deliverableExtensions.has(deliverableExtension(file.name))) {
+      return reject(new Error("完成作业仅支持 PDF、Word、Excel、PPT、ZIP 或常用图片格式。"));
+    }
+    if (file.size > deliverableFileLimit) return reject(new Error("完成作业文件不能超过 2MB。"));
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      const deliverable = {
+        id: makeDispatchId("FILE"),
+        name: file.name,
+        type: file.type || "application/octet-stream",
+        size: file.size,
+        dataUrl: String(reader.result || ""),
+        submittedAt: new Date().toISOString()
+      };
+      if (!deliverableDataUrlIsSafe(deliverable)) {
+        reject(new Error("文件内容或格式无法安全读取，请更换文件。"));
+        return;
+      }
+      resolve(deliverable);
+    });
+    reader.addEventListener("error", () => reject(new Error("完成作业读取失败，请重新选择。")));
+    reader.readAsDataURL(file);
+  });
+}
+
+function deliverableListMarkup(request) {
+  const deliverables = Array.isArray(request?.deliverables) ? request.deliverables : [];
+  if (!deliverables.length) return '<p class="progress-empty-file">辅导员还没有提交完成作业。</p>';
+  return `
+    <div class="deliverable-list" aria-label="辅导员提交的完成作业">
+      ${deliverables.map((deliverable) => {
+        const safe = deliverableDataUrlIsSafe(deliverable);
+        const fileLabel = `${escapeDispatchHtml(deliverable.name)} · ${formatDeliverableSize(deliverable.size)}`;
+        return `
+          <article class="deliverable-item">
+            <div><strong>${fileLabel}</strong><small>提交时间：${formatDispatchTime(deliverable.submittedAt)}</small></div>
+            ${safe
+              ? `<a class="dispatch-secondary" href="${escapeDispatchHtml(deliverable.dataUrl)}" download="${escapeDispatchHtml(deliverable.name)}">查看 / 下载作业</a>`
+              : '<span class="status-pill status-rejected">文件不可用</span>'}
+          </article>`;
+      }).join("")}
+    </div>`;
+}
+
+function tutoringProgressMarkup(request, role, showEntry = true) {
+  const progress = requestProgress(request);
+  const progressNote = String(request?.progressNote || "").trim();
+  const entryHref = `progress.html?role=${role}&request=${encodeURIComponent(request.id)}`;
+  return `
+    <section class="tutoring-progress-card" aria-label="辅导完成进度">
+      <div class="progress-heading"><strong>辅导完成进度</strong><span>${progress}%</span></div>
+      <div class="progress-track" role="progressbar" aria-label="辅导完成进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}">
+        <span style="width: ${progress}%"></span>
+      </div>
+      <small>${progressNote ? `最新说明：${escapeDispatchHtml(progressNote)}` : "等待辅导员更新进度说明。"}</small>
+      ${deliverableListMarkup(request)}
+      ${showEntry ? `<a class="dispatch-primary progress-entry-link" href="${escapeDispatchHtml(entryHref)}">进入辅导进度</a>` : ""}
+    </section>`;
+}
+
 function approvedMentorCardMarkup(request) {
   if (!["assigned", "accepted", "completed"].includes(request.status) || !request.assignedMentorId) return "";
   const mentor = getDispatchMentors().find((item) => item.id === request.assignedMentorId && item.active !== false);
@@ -318,6 +406,7 @@ function renderStudentRequestCard(request) {
       ${preferredMentor ? `<span class="preferred-mentor-line">指定辅导员 · ${escapeDispatchHtml(preferredMentor.name)}</span>` : ""}
       <p>${escapeDispatchHtml(preferredStatus || statusText)}</p>
       ${approvedMentorCardMarkup(request)}
+      ${["accepted", "completed"].includes(request.status) ? tutoringProgressMarkup(request, "student") : ""}
       <span class="privacy-mask">辅导员联系方式由店长保管</span>
       <small>提交时间：${formatDispatchTime(request.createdAt)}</small>
     </article>`;
@@ -436,6 +525,10 @@ function initStudentDispatch() {
       assignedMentorId: "",
       reviewedAt: "",
       studentBookedAt: "",
+      progress: 0,
+      progressNote: "",
+      progressUpdatedAt: "",
+      deliverables: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -485,6 +578,8 @@ function initStudentDispatch() {
     if (!request || request.status !== "assigned" || !request.assignedMentorId) return;
     request.status = "accepted";
     request.studentBookedAt = new Date().toISOString();
+    if (!Number.isFinite(Number(request.progress))) request.progress = 0;
+    if (!Array.isArray(request.deliverables)) request.deliverables = [];
     request.updatedAt = request.studentBookedAt;
     saveDispatchRequests(requests);
     showDispatchMessage(message, "预约已提交，店长将继续中转双方沟通。", true);
@@ -530,6 +625,7 @@ function mentorOrderMarkup(request, mentor, mode) {
       <p class="order-description">${escapeDispatchHtml(request.description)}</p>
       <div class="order-card-top"><span class="matching-score">与你的资料匹配度 ${score}%</span><span class="privacy-mask">学员联系方式不可见</span></div>
       <div class="order-actions">${action}</div>
+      ${mentor && mode === "assignment" && ["accepted", "completed"].includes(request.status) ? tutoringProgressMarkup(request, "mentor") : ""}
     </article>`;
 }
 
@@ -800,6 +896,166 @@ function initMentorDispatch(accountId) {
   renderMentorOrders();
 }
 
+function initProgressPage() {
+  const params = new URLSearchParams(window.location.search);
+  const role = params.get("role") === "mentor" ? "mentor" : params.get("role") === "student" ? "student" : "";
+  const requestId = params.get("request") || "";
+  const progressApp = document.querySelector("#progressApp");
+  const deniedPanel = document.querySelector("#progressAccessDenied");
+  const deniedMessage = document.querySelector("#progressAccessMessage");
+  const backLinks = document.querySelectorAll("[data-progress-back]");
+  const roleBadge = document.querySelector("#progressRoleBadge");
+  const heroEyebrow = document.querySelector("#progressHeroEyebrow");
+  const heroTitle = document.querySelector("#progressHeroTitle");
+  const heroDescription = document.querySelector("#progressHeroDescription");
+  const orderSummary = document.querySelector("#progressOrderSummary");
+  const progressOverview = document.querySelector("#progressOverview");
+  const mentorControls = document.querySelector("#progressMentorControls");
+  const progressForm = document.querySelector("#mentorProgressForm");
+  const deliverableForm = document.querySelector("#mentorDeliverableForm");
+  const progressInput = document.querySelector("#mentorProgressValue");
+  const progressOutput = document.querySelector("#mentorProgressOutput");
+  const progressMessage = document.querySelector("#mentorProgressMessage");
+  const deliverableMessage = document.querySelector("#mentorDeliverableMessage");
+
+  const backHref = role === "mentor" ? "mentor.html" : "student.html";
+  document.documentElement.dataset.progressViewRole = role || "student";
+  backLinks.forEach((link) => link.setAttribute("href", backHref));
+  if (roleBadge) {
+    roleBadge.classList.add(role || "student");
+    roleBadge.textContent = role === "mentor" ? "辅导员进度页" : "学员进度页";
+  }
+
+  function accessContext() {
+    const request = getDispatchRequests().find((item) => item.id === requestId);
+    if (!role || !requestId) return { error: "进度页面链接不完整，请从订单卡片重新进入。" };
+    if (!request) return { error: "没有找到该辅导订单，请返回订单列表检查。" };
+    if (!["accepted", "completed"].includes(request.status)) {
+      return { error: "双方审核与预约尚未完成，暂时不能进入辅导进度。" };
+    }
+    if (role === "student") {
+      const requestIds = new Set(readDispatchStorage(dispatchStorageKeys.studentRequestIds, []));
+      if (!requestIds.has(request.id)) return { error: "当前学员端没有查看该订单的权限。" };
+      return { request };
+    }
+
+    const sessionAccountId = sessionStorage.getItem(dispatchStorageKeys.mentorAuthSession);
+    const account = getMentorAccounts().find((item) => item.id === sessionAccountId && item.verificationStatus === "approved");
+    if (!account?.mentorId || account.mentorId !== request.assignedMentorId) {
+      return { error: "请先登录已获审核通过且负责此订单的辅导员账号。" };
+    }
+    return { request, account };
+  }
+
+  function showDenied(message) {
+    progressApp.hidden = true;
+    deniedPanel.hidden = false;
+    deniedMessage.textContent = message;
+  }
+
+  function renderProgressPage() {
+    const context = accessContext();
+    if (context.error) {
+      showDenied(context.error);
+      return;
+    }
+
+    const request = context.request;
+    const mentor = getDispatchMentors().find((item) => item.id === request.assignedMentorId);
+    deniedPanel.hidden = true;
+    progressApp.hidden = false;
+    heroEyebrow.textContent = role === "mentor" ? "Tutor progress workspace" : "Tutoring progress";
+    heroTitle.textContent = role === "mentor" ? "更新辅导进度并提交完成作业" : "查看辅导进度与接收完成作业";
+    heroDescription.textContent = role === "mentor"
+      ? "你可以更新订单的完成比例和进度说明，并向学员提交完成作业；双方联系方式仍由店长统一保管。"
+      : "辅导员更新的进度和提交的完成作业会显示在这里，你可以直接查看或下载；双方联系方式仍由店长统一保管。";
+    orderSummary.innerHTML = `
+      <div class="order-card-top"><span class="order-id">${escapeDispatchHtml(request.id)}</span>${dispatchStatusMarkup(request.status)}</div>
+      <h2>${escapeDispatchHtml(request.subject)}</h2>
+      ${orderMetaMarkup(request)}
+      <p class="order-description">${escapeDispatchHtml(request.description)}</p>
+      <div class="progress-parties"><span>学员订单</span><strong>${escapeDispatchHtml(mentor?.name || request.assignedMentorId || "已审核辅导员")}</strong></div>`;
+    progressOverview.innerHTML = tutoringProgressMarkup(request, role, false);
+
+    mentorControls.hidden = role !== "mentor";
+    if (role === "mentor") {
+      const finalized = request.status === "completed";
+      progressForm.hidden = finalized;
+      deliverableForm.hidden = finalized;
+      document.querySelector("#progressFinalizedNotice").hidden = !finalized;
+      progressInput.value = String(requestProgress(request));
+      progressOutput.textContent = `${requestProgress(request)}%`;
+      document.querySelector("#mentorProgressNote").value = request.progressNote || "";
+    }
+  }
+
+  progressInput?.addEventListener("input", () => {
+    progressOutput.textContent = `${requestProgress({ progress: progressInput.value })}%`;
+  });
+
+  progressForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const context = accessContext();
+    if (context.error || context.request.status !== "accepted") {
+      showDispatchMessage(progressMessage, context.error || "该订单已经由店长标记完成，不能继续修改进度。");
+      return;
+    }
+    const requests = getDispatchRequests();
+    const request = requests.find((item) => item.id === requestId);
+    request.progress = requestProgress({ progress: progressInput.value });
+    request.progressNote = document.querySelector("#mentorProgressNote").value.trim();
+    request.progressUpdatedAt = new Date().toISOString();
+    request.updatedAt = request.progressUpdatedAt;
+    try {
+      saveDispatchRequests(requests);
+      showDispatchMessage(progressMessage, `进度已更新为 ${request.progress}%，学员端会同步显示。`, true);
+      renderProgressPage();
+    } catch (error) {
+      showDispatchMessage(progressMessage, "进度保存失败，请清理浏览器本地空间后重试。");
+    }
+  });
+
+  deliverableForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const context = accessContext();
+    if (context.error || context.request.status !== "accepted") {
+      showDispatchMessage(deliverableMessage, context.error || "该订单已经由店长标记完成，不能继续提交作业。");
+      return;
+    }
+    const submitButton = deliverableForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    showDispatchMessage(deliverableMessage, "正在读取并提交完成作业…");
+    try {
+      const deliverable = await readDeliverableFile(document.querySelector("#mentorDeliverableFile").files[0]);
+      const requests = getDispatchRequests();
+      const request = requests.find((item) => item.id === requestId);
+      const submissionNote = document.querySelector("#mentorDeliverableNote").value.trim();
+      request.deliverables = [...(Array.isArray(request.deliverables) ? request.deliverables : []), deliverable];
+      request.progress = 100;
+      request.progressNote = submissionNote || "完成作业已提交，请学员查看或下载。";
+      request.progressUpdatedAt = deliverable.submittedAt;
+      request.updatedAt = deliverable.submittedAt;
+      saveDispatchRequests(requests);
+      deliverableForm.reset();
+      showDispatchMessage(deliverableMessage, "完成作业已提交，双方进度已同步为 100%。", true);
+      renderProgressPage();
+    } catch (error) {
+      const message = error?.name === "QuotaExceededError"
+        ? "浏览器本地空间不足，无法保存作业；请压缩文件后重试。"
+        : error.message;
+      showDispatchMessage(deliverableMessage, message);
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+
+  window.addEventListener("storage", (event) => {
+    if ([dispatchStorageKeys.requests, dispatchStorageKeys.mentorAccounts].includes(event.key)) renderProgressPage();
+  });
+
+  renderProgressPage();
+}
+
 function managerMentorOptionMarkup(request, selectedId = "") {
   const appliedIds = new Set(request.applications || []);
   const matches = matchingMentorsForRequest(request).filter(({ mentor }) => appliedIds.has(mentor.id));
@@ -828,6 +1084,7 @@ function managerRequestMarkup(request, studentContacts, mentorContacts) {
           <h3>${escapeDispatchHtml(request.major)} · ${escapeDispatchHtml(request.subject)}</h3>
           ${orderMetaMarkup(request)}
           <p class="order-description">${escapeDispatchHtml(request.description)}</p>
+          ${["accepted", "completed"].includes(request.status) ? tutoringProgressMarkup(request, "student", false) : ""}
           ${preferredMentor ? `<div class="private-box preferred-request-box"><strong>学员预约意向</strong><span>${escapeDispatchHtml(preferredMentor.name)} · ${request.applications?.includes(preferredMentor.id) ? "辅导员已接受，等待审核" : "等待辅导员接受预约申请"}</span></div>` : ""}
           <div class="private-box">
             <strong>学员联系方式（仅店长可见）</strong>
@@ -1005,7 +1262,11 @@ function initManagerDispatch(onInvalidSession) {
       request.reviewedAt = new Date().toISOString();
       request.studentBookedAt = "";
     }
-    if (completeButton && request.status === "accepted") request.status = "completed";
+    if (completeButton && request.status === "accepted") {
+      request.status = "completed";
+      request.progress = 100;
+      request.progressUpdatedAt = new Date().toISOString();
+    }
     if (reopenButton && request.status === "completed") {
       request.status = request.assignedMentorId ? "assigned" : (request.applications?.length ? "applied" : "pending");
       request.studentBookedAt = "";
@@ -1147,3 +1408,4 @@ async function initManagerAccess() {
 if (dispatchRole === "student") initStudentDispatch();
 if (dispatchRole === "mentor") initMentorAuth();
 if (dispatchRole === "manager") initManagerAccess();
+if (dispatchRole === "progress") initProgressPage();
