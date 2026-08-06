@@ -156,6 +156,88 @@ function normalizeRmbRate(value) {
   return `${rate} 元/小时`;
 }
 
+const platformFeeRate = 0.07;
+
+function requestOrderAmount(request) {
+  const amount = Number(request?.orderAmount);
+  return Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) / 100 : 0;
+}
+
+function requestPlatformFee(request) {
+  return Math.round(requestOrderAmount(request) * platformFeeRate * 100) / 100;
+}
+
+function formatRmbMoney(value) {
+  const amount = Number(value);
+  return `￥${(Number.isFinite(amount) ? amount : 0).toLocaleString("zh-CN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}`;
+}
+
+function requestFeesCollected(request) {
+  if (!requestOrderAmount(request)) return true;
+  return Boolean(request.studentFeePaidAt && request.mentorFeePaidAt);
+}
+
+function feeSummaryMarkup(request, role) {
+  const amount = requestOrderAmount(request);
+  if (!amount) return "";
+  const fee = requestPlatformFee(request);
+  const isStudent = role === "student";
+  const paidAt = isStudent ? request.studentFeePaidAt : request.mentorFeePaidAt;
+  const finalAmount = isStudent ? amount + fee : Math.max(0, amount - fee);
+  const feeLabel = isStudent ? "找辅导方服务费（7%）" : "辅导员服务费（7%）";
+  const finalLabel = isStudent ? "找辅导方应付合计" : "辅导员预计实收";
+  const statusLabel = paidAt ? `店长已确认收取 · ${formatDispatchTime(paidAt)}` : "等待店长确认收取";
+  return `
+    <section class="fee-summary-card" aria-label="平台服务费明细">
+      <div class="fee-summary-heading"><strong>平台服务费明细</strong><span>双方各 7%</span></div>
+      <div class="fee-summary-grid">
+        <div><span>订单辅导金额</span><strong>${formatRmbMoney(amount)}</strong></div>
+        <div><span>${feeLabel}</span><strong>${formatRmbMoney(fee)}</strong></div>
+        <div class="fee-preview-total"><span>${finalLabel}</span><strong>${formatRmbMoney(finalAmount)}</strong></div>
+      </div>
+      <div class="fee-payment-status"><span class="${paidAt ? "paid" : ""}">${statusLabel}</span></div>
+      <small>${isStudent
+        ? "辅导员另行承担 7% 服务费；你的应付合计不会重复计入辅导员费用。"
+        : "平台从订单金额中向辅导员收取 7% 服务费；找辅导方另行支付其 7% 服务费。"}</small>
+      <div class="fee-protection-note"><strong>双边交易保障</strong><span>店长审核每份完成作业；未达到要求时可要求辅导员返修，并由平台协调争议，降低不合格交付和双方逃单风险。</span></div>
+    </section>`;
+}
+
+function managerFeeCollectionMarkup(request) {
+  const amount = requestOrderAmount(request);
+  if (!amount) return "";
+  const fee = requestPlatformFee(request);
+  const studentPaid = Boolean(request.studentFeePaidAt);
+  const mentorPaid = Boolean(request.mentorFeePaidAt);
+  const collected = (studentPaid ? fee : 0) + (mentorPaid ? fee : 0);
+  return `
+    <section class="manager-fee-collection" aria-label="平台手续费收取记录">
+      <div class="fee-summary-heading"><strong>平台手续费收取记录</strong><span>本单总收入 ${formatRmbMoney(fee * 2)}</span></div>
+      <div class="fee-summary-grid">
+        <div><span>订单辅导金额</span><strong>${formatRmbMoney(amount)}</strong></div>
+        <div><span>双方各收 7%</span><strong>${formatRmbMoney(fee)} × 2</strong></div>
+        <div class="fee-preview-total"><span>当前已收</span><strong>${formatRmbMoney(collected)}</strong></div>
+      </div>
+      <div class="manager-fee-actions">
+        <div class="manager-fee-action">
+          <strong>找辅导方手续费：${formatRmbMoney(fee)}</strong>
+          <small>${studentPaid ? `已收 · ${formatDispatchTime(request.studentFeePaidAt)}` : "提交订单后收取"}</small>
+          <button class="dispatch-secondary" type="button" data-toggle-student-fee="${escapeDispatchHtml(request.id)}">${studentPaid ? "撤销已收记录" : "确认已收找辅导方 7%"}</button>
+        </div>
+        <div class="manager-fee-action">
+          <strong>辅导员手续费：${formatRmbMoney(fee)}</strong>
+          <small>${mentorPaid ? `已收 · ${formatDispatchTime(request.mentorFeePaidAt)}` : request.assignedMentorId ? "派单后向辅导员收取" : "审核派单后才可确认"}</small>
+          <button class="dispatch-secondary" type="button" data-toggle-mentor-fee="${escapeDispatchHtml(request.id)}"${request.assignedMentorId ? "" : " disabled"}>${mentorPaid ? "撤销已收记录" : "确认已收辅导员 7%"}</button>
+        </div>
+      </div>
+      <small>平台对找辅导方和辅导员分别收取订单金额 7%，本单平台服务费合计 14%。</small>
+      <div class="fee-protection-note"><strong>手续费保障职责</strong><span>店长审核每份完成作业的质量，未通过时要求返修，并负责协调不合格交付或逃单争议。</span></div>
+    </section>`;
+}
+
 function formatMentorContact(contact = {}) {
   const details = [];
   if (contact.phone) details.push(`认证电话：${contact.phone}`);
@@ -226,6 +308,9 @@ function dispatchStatusMarkup(status) {
 }
 
 function orderMetaMarkup(request) {
+  const amountMarkup = requestOrderAmount(request)
+    ? `<span>订单金额 ${formatRmbMoney(requestOrderAmount(request))}</span>`
+    : "";
   return `
     <div class="order-meta">
       <span>${escapeDispatchHtml(request.major)}</span>
@@ -233,6 +318,7 @@ function orderMetaMarkup(request) {
       <span>${escapeDispatchHtml(request.serviceType)}</span>
       <span>${escapeDispatchHtml(dispatchRegion(request))}</span>
       <span>预算 ${escapeDispatchHtml(request.budget)}</span>
+      ${amountMarkup}
       <span>截止 ${formatDispatchDate(request.deadline)}</span>
     </div>`;
 }
@@ -462,6 +548,7 @@ function renderStudentRequestCard(request) {
       ${orderMetaMarkup(request)}
       ${preferredMentor ? `<span class="preferred-mentor-line">指定辅导员 · ${escapeDispatchHtml(preferredMentor.name)}</span>` : ""}
       <p>${escapeDispatchHtml(preferredStatus || statusText)}</p>
+      ${feeSummaryMarkup(request, "student")}
       ${approvedMentorCardMarkup(request)}
       ${["accepted", "completed"].includes(request.status) ? tutoringProgressMarkup(request, "student") : ""}
       <span class="privacy-mask">辅导员联系方式由店长保管</span>
@@ -594,6 +681,10 @@ function initStudentDispatch(accountId) {
   const clearPreferredMentorButton = document.querySelector("#clearPreferredMentor");
   const startDate = document.querySelector("#requestStartDate");
   const deadline = document.querySelector("#requestDeadline");
+  const orderAmountInput = document.querySelector("#requestOrderAmount");
+  const amountPreview = document.querySelector("#requestAmountPreview");
+  const studentFeePreview = document.querySelector("#requestStudentFeePreview");
+  const studentTotalPreview = document.querySelector("#requestStudentTotalPreview");
   const today = new Date().toISOString().slice(0, 10);
   startDate.min = today;
   deadline.min = today;
@@ -606,6 +697,14 @@ function initStudentDispatch(accountId) {
   requesterContactInput.value = signedInAccount.contact || signedInAccount.loginAccount || "";
   requesterNameInput.readOnly = true;
   requesterContactInput.readOnly = true;
+
+  function updateFeePreview() {
+    const amount = Math.max(0, Number(orderAmountInput.value) || 0);
+    const fee = Math.round(amount * platformFeeRate * 100) / 100;
+    amountPreview.textContent = formatRmbMoney(amount);
+    studentFeePreview.textContent = formatRmbMoney(fee);
+    studentTotalPreview.textContent = formatRmbMoney(amount + fee);
+  }
 
   function currentStudentRequestIds() {
     const account = getStudentAccounts().find((item) => item.id === accountId);
@@ -653,6 +752,12 @@ function initStudentDispatch(accountId) {
       showDispatchMessage(message, "截止日期不能早于希望开始日期。");
       return;
     }
+    const orderAmount = Math.round(Number(orderAmountInput.value) * 100) / 100;
+    if (!Number.isFinite(orderAmount) || orderAmount <= 0) {
+      showDispatchMessage(message, "请输入正确的订单辅导金额。");
+      orderAmountInput.focus();
+      return;
+    }
 
     const preferredMentorId = preferredMentorInput.value;
     const preferredMentor = preferredMentorId
@@ -672,6 +777,10 @@ function initStudentDispatch(accountId) {
       level: document.querySelector("#requestLevel").value,
       serviceType: document.querySelector("#requestServiceType").value,
       budget: document.querySelector("#requestBudget").value.trim(),
+      orderAmount,
+      platformFeeRate,
+      studentFeePaidAt: "",
+      mentorFeePaidAt: "",
       country: document.querySelector("#requestCountry").value.trim(),
       city: document.querySelector("#requestCity").value.trim(),
       area: document.querySelector("#requestArea").value.trim(),
@@ -718,9 +827,10 @@ function initStudentDispatch(accountId) {
     requesterContactInput.value = requester.contact;
     startDate.min = today;
     deadline.min = today;
+    updateFeePreview();
     showDispatchMessage(message, preferredMentor
-      ? `预约申请 ${request.id} 已发送给 ${preferredMentor.name}，联系方式仅店长端可见。`
-      : `需求 ${request.id} 已提交，联系方式仅店长端可见。`, true);
+      ? `预约申请 ${request.id} 已发送给 ${preferredMentor.name}；找辅导方 7% 服务费为 ${formatRmbMoney(requestPlatformFee(request))}。`
+      : `需求 ${request.id} 已提交；找辅导方 7% 服务费为 ${formatRmbMoney(requestPlatformFee(request))}。`, true);
     renderStudentRequests();
     renderStudentMentors();
   });
@@ -731,6 +841,7 @@ function initStudentDispatch(accountId) {
   });
 
   clearPreferredMentorButton.addEventListener("click", clearPreferredMentor);
+  orderAmountInput.addEventListener("input", updateFeePreview);
 
   list.addEventListener("click", (event) => {
     const bookButton = event.target.closest("[data-book-mentor]");
@@ -758,6 +869,7 @@ function initStudentDispatch(accountId) {
 
   renderStudentRequests();
   renderStudentMentors();
+  updateFeePreview();
 }
 
 function mentorOrderMarkup(request, mentor, mode) {
@@ -784,6 +896,7 @@ function mentorOrderMarkup(request, mentor, mode) {
       <div class="order-card-top"><span class="order-id">${escapeDispatchHtml(request.id)}</span>${dispatchStatusMarkup(request.status)}</div>
       <h3>${escapeDispatchHtml(request.subject)}</h3>
       ${orderMetaMarkup(request)}
+      ${feeSummaryMarkup(request, "mentor")}
       ${request.preferredMentorId === mentor?.id ? '<span class="preferred-mentor-line">学员向你发起预约申请</span>' : ""}
       <p class="order-description">${escapeDispatchHtml(request.description)}</p>
       <div class="order-card-top"><span class="matching-score">与你的资料匹配度 ${score}%</span><span class="privacy-mask">学员联系方式不可见</span></div>
@@ -1242,6 +1355,19 @@ function managerRequestMarkup(request, studentContacts, mentorContacts) {
   const preferredMentor = getDispatchMentors().find((mentor) => mentor.id === request.preferredMentorId);
   const assignedContact = assignedMentor ? formatMentorContact(mentorContacts[assignedMentor.id]) : "尚未派单";
   const appliedCount = (request.applications || []).length;
+  const feeApplies = Boolean(requestOrderAmount(request));
+  const studentFeeReady = !feeApplies || Boolean(request.studentFeePaidAt);
+  const canAssign = Boolean(appliedCount && studentFeeReady);
+  const assignLabel = appliedCount && !studentFeeReady
+    ? "请先确认找辅导方 7%"
+    : request.assignedMentorId ? "重新审核" : "审核通过并派单";
+  const completionAction = request.status === "accepted"
+    ? !requestHasApprovedDeliverable(request)
+      ? '<button class="dispatch-secondary" type="button" disabled>请先审核完成作业</button>'
+      : !requestFeesCollected(request)
+        ? '<button class="dispatch-secondary" type="button" disabled>请先确认双方手续费</button>'
+        : `<button class="dispatch-secondary" type="button" data-complete-request="${escapeDispatchHtml(request.id)}">标记完成</button>`
+    : "";
 
   return `
     <article class="order-card manager-order" data-manager-request-card="${escapeDispatchHtml(request.id)}">
@@ -1266,15 +1392,14 @@ function managerRequestMarkup(request, studentContacts, mentorContacts) {
           </div>
         </div>
         <div class="dispatch-list">
+          ${managerFeeCollectionMarkup(request)}
           <div class="order-card-top"><strong>抢单审核</strong><span class="step-badge">${appliedCount} 位已抢单</span></div>
           <div class="assignment-controls">
             <label><span>选择已抢单辅导员</span><select data-mentor-select="${escapeDispatchHtml(request.id)}">${managerMentorOptionMarkup(request, request.assignedMentorId)}</select></label>
-            <button class="dispatch-primary" type="button" data-assign-request="${escapeDispatchHtml(request.id)}"${appliedCount ? "" : " disabled"}>${request.assignedMentorId ? "重新审核" : "审核通过并派单"}</button>
+            <button class="dispatch-primary" type="button" data-assign-request="${escapeDispatchHtml(request.id)}"${canAssign ? "" : " disabled"}>${assignLabel}</button>
           </div>
           <div class="order-actions">
-            ${request.status === "accepted" ? requestHasApprovedDeliverable(request)
-              ? `<button class="dispatch-secondary" type="button" data-complete-request="${escapeDispatchHtml(request.id)}">标记完成</button>`
-              : '<button class="dispatch-secondary" type="button" disabled>请先审核完成作业</button>' : ""}
+            ${completionAction}
             ${request.status === "completed" ? `<button class="dispatch-secondary" type="button" data-reopen-request="${escapeDispatchHtml(request.id)}">重新打开</button>` : ""}
           </div>
           <span class="privacy-mask">审核通过后学员只看到辅导员名片，不显示联系方式</span>
@@ -1370,6 +1495,18 @@ function initManagerDispatch(onInvalidSession) {
     document.querySelector("#managerAppliedCount").textContent = String(requests.filter((request) => request.status === "applied").length);
     document.querySelector("#managerAssignedCount").textContent = String(requests.filter((request) => request.status === "assigned").length);
     document.querySelector("#managerAcceptedCount").textContent = String(requests.filter((request) => ["accepted", "completed"].includes(request.status)).length);
+    let collectedFees = 0;
+    let receivableFees = 0;
+    requests.forEach((request) => {
+      const fee = requestPlatformFee(request);
+      if (!fee) return;
+      if (request.studentFeePaidAt) collectedFees += fee;
+      else receivableFees += fee;
+      if (request.mentorFeePaidAt) collectedFees += fee;
+      else receivableFees += fee;
+    });
+    document.querySelector("#managerFeeReceivableTotal").textContent = formatRmbMoney(receivableFees);
+    document.querySelector("#managerFeeCollectedTotal").textContent = formatRmbMoney(collectedFees);
     requestList.innerHTML = filtered.length
       ? filtered.map((request) => managerRequestMarkup(request, studentContacts, mentorContacts)).join("")
       : '<p class="empty-dispatch">没有符合筛选条件的辅导需求。</p>';
@@ -1399,9 +1536,25 @@ function initManagerDispatch(onInvalidSession) {
     const rejectMentorButton = event.target.closest("[data-reject-mentor-account]");
     const approveDeliverableButton = event.target.closest("[data-approve-deliverable]");
     const rejectDeliverableButton = event.target.closest("[data-reject-deliverable]");
+    const toggleStudentFeeButton = event.target.closest("[data-toggle-student-fee]");
+    const toggleMentorFeeButton = event.target.closest("[data-toggle-mentor-fee]");
     if (!assignButton && !completeButton && !reopenButton && !approveMentorButton && !rejectMentorButton
-      && !approveDeliverableButton && !rejectDeliverableButton) return;
+      && !approveDeliverableButton && !rejectDeliverableButton && !toggleStudentFeeButton && !toggleMentorFeeButton) return;
     if (!requireManagerSession()) return;
+
+    if (toggleStudentFeeButton || toggleMentorFeeButton) {
+      const feeButton = toggleStudentFeeButton || toggleMentorFeeButton;
+      const requestId = toggleStudentFeeButton?.dataset.toggleStudentFee || toggleMentorFeeButton?.dataset.toggleMentorFee;
+      const requests = getDispatchRequests();
+      const request = requests.find((item) => item.id === requestId);
+      if (!request || !requestOrderAmount(request) || (toggleMentorFeeButton && !request.assignedMentorId)) return;
+      const key = toggleStudentFeeButton ? "studentFeePaidAt" : "mentorFeePaidAt";
+      request[key] = request[key] ? "" : new Date().toISOString();
+      request.updatedAt = new Date().toISOString();
+      saveDispatchRequests(requests);
+      renderManagerDispatch();
+      return;
+    }
 
     if (approveDeliverableButton || rejectDeliverableButton) {
       const reviewButton = approveDeliverableButton || rejectDeliverableButton;
@@ -1457,12 +1610,15 @@ function initManagerDispatch(onInvalidSession) {
     if (assignButton) {
       const select = document.querySelector(`[data-mentor-select="${CSS.escape(requestId)}"]`);
       if (!select?.value || !(request.applications || []).includes(select.value)) return;
+      if (request.assignedMentorId && request.assignedMentorId !== select.value) {
+        request.mentorFeePaidAt = "";
+      }
       request.assignedMentorId = select.value;
       request.status = "assigned";
       request.reviewedAt = new Date().toISOString();
       request.studentBookedAt = "";
     }
-    if (completeButton && request.status === "accepted" && requestHasApprovedDeliverable(request)) {
+    if (completeButton && request.status === "accepted" && requestHasApprovedDeliverable(request) && requestFeesCollected(request)) {
       request.status = "completed";
       request.progress = 100;
       request.progressUpdatedAt = new Date().toISOString();
@@ -1508,6 +1664,8 @@ async function initManagerAccess() {
     ["managerPendingCount", "managerAppliedCount", "managerAssignedCount", "managerAcceptedCount"].forEach((id) => {
       document.querySelector(`#${id}`).textContent = "0";
     });
+    document.querySelector("#managerFeeReceivableTotal").textContent = "￥0.00";
+    document.querySelector("#managerFeeCollectedTotal").textContent = "￥0.00";
     passwordForm.reset();
     showDispatchMessage(passwordMessage, "");
     showDispatchMessage(loginMessage, message);

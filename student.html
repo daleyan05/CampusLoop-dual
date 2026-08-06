@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CampusLoop 找辅导入口</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="dispatch.css?v=20260806-student-auth" />
+    <link rel="stylesheet" href="dispatch.css?v=20260806-fees2" />
   </head>
   <body>
     <header class="dispatch-topbar">
@@ -104,6 +104,8 @@
             <label><span>预算（人民币）</span><input id="requestBudget" type="text" required placeholder="例如：200 元/小时或总预算 1200 元" /></label>
           </div>
 
+          <label><span>订单辅导金额（人民币）</span><input id="requestOrderAmount" type="number" required min="1" step="0.01" inputmode="decimal" placeholder="例如：1000" /><small class="mentor-proof-state">平台以此金额计算双方各 7% 的服务费。</small></label>
+
           <div class="form-grid three">
             <label><span>国家</span><input id="requestCountry" type="text" required placeholder="例如：英国" /></label>
             <label><span>城市</span><input id="requestCity" type="text" required placeholder="例如：伦敦" /></label>
@@ -117,8 +119,19 @@
 
           <label><span>需求说明</span><textarea id="requestDescription" rows="5" required placeholder="写清课程难点、作业要求、当前进度和希望的辅导方式。请不要在这里填写联系方式。"></textarea></label>
           <label class="consent-row"><input id="requestPrivacyConsent" type="checkbox" required /><span>我同意由平台店长保管联系方式并代为匹配，辅导员无法直接查看。</span></label>
+          <label class="consent-row"><input id="requestFeeConsent" type="checkbox" required /><span>我已知悉并同意：找辅导方支付订单金额 7% 的平台服务费；辅导员另行支付订单金额 7% 的平台服务费。</span></label>
           <p class="dispatch-message" id="requestMessage" aria-live="polite"></p>
           <button class="dispatch-primary" type="submit">发布到辅导员抢单大厅</button>
+          <section class="fee-preview-card" id="requestFeePreview" aria-live="polite">
+            <div class="fee-preview-heading"><strong>提交订单后的费用明细</strong><span>双边各收 7%</span></div>
+            <div class="fee-preview-grid">
+              <div><span>订单辅导金额</span><output id="requestAmountPreview">￥0.00</output></div>
+              <div><span>找辅导方服务费（7%）</span><output id="requestStudentFeePreview">￥0.00</output></div>
+              <div class="fee-preview-total"><span>找辅导方应付合计</span><output id="requestStudentTotalPreview">￥0.00</output></div>
+            </div>
+            <small>辅导员的 7% 服务费由辅导员另行承担；平台每单合计收取订单金额的 14%。</small>
+            <div class="fee-protection-note"><strong>双边交易保障</strong><span>店长审核每份完成作业；未达到要求时可要求辅导员返修，并由平台协调争议，降低不合格交付和双方逃单风险。</span></div>
+          </section>
         </form>
 
         <aside class="dispatch-panel status-panel">
@@ -138,7 +151,7 @@
       </section>
       </div>
     </main>
-    <script src="i18n.js?v=20260806-student-auth"></script>
-    <script src="dispatch.js?v=20260806-student-auth"></script>
+    <script src="i18n.js?v=20260806-fees2"></script>
+    <script src="dispatch.js?v=20260806-fees2"></script>
   </body>
 </html>

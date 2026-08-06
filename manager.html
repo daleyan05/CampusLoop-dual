@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CampusLoop 店长派单入口</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="dispatch.css?v=20260806-student-auth" />
+    <link rel="stylesheet" href="dispatch.css?v=20260806-fees2" />
   </head>
   <body>
     <header class="dispatch-topbar">
@@ -50,6 +50,8 @@
         <article><span>抢单待审核</span><strong id="managerAppliedCount">0</strong></article>
         <article><span>审核通过</span><strong id="managerAssignedCount">0</strong></article>
         <article><span>已预约 / 完成</span><strong id="managerAcceptedCount">0</strong></article>
+        <article class="manager-fee-stat"><span>待收双方手续费</span><strong id="managerFeeReceivableTotal">￥0.00</strong></article>
+        <article class="manager-fee-stat collected"><span>已收平台手续费</span><strong id="managerFeeCollectedTotal">￥0.00</strong></article>
       </section>
 
       <section class="dispatch-panel manager-verification-panel">
@@ -91,7 +93,7 @@
         </form>
       </section>
     </main>
-    <script src="i18n.js?v=20260806-student-auth"></script>
-    <script src="dispatch.js?v=20260806-student-auth"></script>
+    <script src="i18n.js?v=20260806-fees2"></script>
+    <script src="dispatch.js?v=20260806-fees2"></script>
   </body>
 </html>
