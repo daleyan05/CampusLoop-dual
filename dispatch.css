@@ -404,19 +404,35 @@ html[data-dispatch-role="mentor"] .progress-track > span { background: linear-gr
 .progress-empty-file { padding: 10px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.74); font-size: 12px; }
 .deliverable-list { display: grid; gap: 8px; }
 .deliverable-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   padding: 10px 11px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--white);
 }
-.deliverable-item > div { display: grid; min-width: 0; gap: 3px; }
+.deliverable-details { display: grid; min-width: 0; gap: 3px; }
 .deliverable-item strong { overflow-wrap: anywhere; font-size: 12px; }
 .deliverable-item small { color: var(--muted); font-size: 11px; }
 .deliverable-item .dispatch-secondary { flex: 0 0 auto; min-height: 34px; padding-inline: 11px; font-size: 12px; }
+.deliverable-status-column { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.deliverable-review-actions { display: flex; grid-column: 1 / -1; gap: 8px; padding-top: 9px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.deliverable-review-actions .dispatch-primary,
+.deliverable-review-actions .dispatch-danger { min-height: 36px; padding-inline: 12px; font-size: 12px; }
+.manager-deliverable-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(122, 75, 141, 0.2);
+}
+.manager-deliverable-heading strong { color: var(--manager); font-size: 14px; }
+.manager-deliverable-heading span { color: var(--muted); font-size: 11px; font-weight: 700; text-align: right; }
+.review-pending-message { border: 1px solid #f0d6ad; background: #fff8e8; color: #855b18 !important; font-weight: 800; }
 
 .progress-shell { min-height: calc(100vh - 68px); }
 .progress-hero { background: linear-gradient(135deg, #edf6f2 0%, #f3f6fa 62%, transparent 100%); }
@@ -553,6 +569,10 @@ html[data-dispatch-role="mentor"] .progress-track > span { background: linear-gr
   .dispatch-topbar { align-items: flex-start; }
   .dispatch-brand strong { display: none; }
   .progress-back-link { display: none; }
-  .deliverable-item { align-items: stretch; flex-direction: column; }
-  .deliverable-item .dispatch-secondary { align-self: flex-start; }
+  .deliverable-item { grid-template-columns: 1fr; align-items: stretch; }
+  .deliverable-status-column { justify-content: flex-start; }
+  .deliverable-item .dispatch-secondary { justify-self: start; }
+  .deliverable-review-actions { grid-column: 1; }
+  .manager-deliverable-heading { align-items: flex-start; flex-direction: column; }
+  .manager-deliverable-heading span { text-align: left; }
 }

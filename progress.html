@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CampusLoop 辅导进度</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="dispatch.css?v=20260806-progress" />
+    <link rel="stylesheet" href="dispatch.css?v=20260806-review" />
   </head>
   <body>
     <header class="dispatch-topbar">
@@ -34,7 +34,7 @@
           </div>
           <div class="privacy-card">
             <strong>店长继续担任信息中转</strong>
-            <span>本页不显示双方联系方式。辅导员负责更新进度和提交完成作业，学员负责查看与下载。</span>
+            <span>本页不显示双方联系方式。辅导员提交的完成作业先由店长审核，通过后学员才能查看与下载。</span>
           </div>
         </section>
 
@@ -83,16 +83,16 @@
                 <small class="mentor-proof-state">支持 PDF、Word、Excel、PPT、ZIP 或常用图片，每个文件不超过 2MB。</small>
               </label>
               <label><span>提交说明</span><textarea id="mentorDeliverableNote" rows="4" placeholder="例如：最终版作业已提交，请学员下载查看。"></textarea></label>
-              <div class="completion-warning">提交完成作业后，双方进度会自动更新为 100%；仍由店长最终标记订单完成。</div>
+              <div class="completion-warning">提交完成作业后会先发送给店长审核；审核通过后才会显示在学员端，并由店长最终标记订单完成。</div>
               <p class="dispatch-message" id="mentorDeliverableMessage" aria-live="polite"></p>
-              <button class="dispatch-primary" type="submit">上传并发送给学员</button>
+              <button class="dispatch-primary" type="submit">上传并提交店长审核</button>
             </form>
           </div>
         </section>
       </div>
     </main>
 
-    <script src="i18n.js?v=20260806-progress"></script>
-    <script src="dispatch.js?v=20260806-progress"></script>
+    <script src="i18n.js?v=20260806-review"></script>
+    <script src="dispatch.js?v=20260806-review"></script>
   </body>
 </html>

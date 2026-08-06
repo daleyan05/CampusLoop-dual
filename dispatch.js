@@ -289,6 +289,17 @@ function deliverableDataUrlIsSafe(deliverable) {
   return /^data:(?:application\/(?:pdf|msword|vnd\.ms-excel|vnd\.ms-powerpoint|vnd\.openxmlformats-officedocument\.(?:wordprocessingml\.document|spreadsheetml\.sheet|presentationml\.presentation)|zip|x-zip-compressed|octet-stream)|image\/(?:png|jpe?g|gif|webp));base64,/i.test(deliverable?.dataUrl || "");
 }
 
+function deliverableReviewStatus(deliverable) {
+  return ["pending", "approved", "rejected"].includes(deliverable?.reviewStatus)
+    ? deliverable.reviewStatus
+    : "pending";
+}
+
+function requestHasApprovedDeliverable(request) {
+  return (Array.isArray(request?.deliverables) ? request.deliverables : [])
+    .some((deliverable) => deliverableReviewStatus(deliverable) === "approved" && deliverableDataUrlIsSafe(deliverable));
+}
+
 function readDeliverableFile(file) {
   return new Promise((resolve, reject) => {
     if (!file) return reject(new Error("请选择要提交的完成作业。"));
@@ -317,20 +328,55 @@ function readDeliverableFile(file) {
   });
 }
 
-function deliverableListMarkup(request) {
-  const deliverables = Array.isArray(request?.deliverables) ? request.deliverables : [];
-  if (!deliverables.length) return '<p class="progress-empty-file">辅导员还没有提交完成作业。</p>';
+function deliverableListMarkup(request, role = "student") {
+  const allDeliverables = Array.isArray(request?.deliverables) ? request.deliverables : [];
+  const deliverables = role === "student"
+    ? allDeliverables.filter((deliverable) => deliverableReviewStatus(deliverable) === "approved")
+    : allDeliverables;
+  if (!deliverables.length) {
+    if (role === "student" && allDeliverables.some((deliverable) => deliverableReviewStatus(deliverable) === "pending")) {
+      return '<p class="progress-empty-file review-pending-message">完成作业已提交，正在等待店长审核。</p>';
+    }
+    if (role === "student" && allDeliverables.length) {
+      return '<p class="progress-empty-file">暂时没有店长审核通过的完成作业。</p>';
+    }
+    return '<p class="progress-empty-file">辅导员还没有提交完成作业。</p>';
+  }
   return `
     <div class="deliverable-list" aria-label="辅导员提交的完成作业">
       ${deliverables.map((deliverable) => {
         const safe = deliverableDataUrlIsSafe(deliverable);
+        const reviewStatus = deliverableReviewStatus(deliverable);
+        const reviewLabel = {
+          pending: "待店长审核",
+          approved: "店长审核通过",
+          rejected: "店长已驳回"
+        }[reviewStatus];
+        const reviewClass = reviewStatus === "approved"
+          ? "status-accepted"
+          : reviewStatus === "rejected" ? "status-rejected" : "status-pending";
         const fileLabel = `${escapeDispatchHtml(deliverable.name)} · ${formatDeliverableSize(deliverable.size)}`;
+        const managerActions = role === "manager" && request.status !== "completed"
+          ? `<div class="deliverable-review-actions">
+              ${reviewStatus !== "approved" ? `<button class="dispatch-primary" type="button" data-approve-deliverable="${escapeDispatchHtml(deliverable.id)}" data-deliverable-request="${escapeDispatchHtml(request.id)}">${reviewStatus === "rejected" ? "重新审核通过" : "审核通过并发送学员"}</button>` : ""}
+              ${reviewStatus !== "rejected" ? `<button class="dispatch-danger" type="button" data-reject-deliverable="${escapeDispatchHtml(deliverable.id)}" data-deliverable-request="${escapeDispatchHtml(request.id)}">${reviewStatus === "approved" ? "撤回并驳回" : "驳回提交"}</button>` : ""}
+            </div>`
+          : "";
         return `
           <article class="deliverable-item">
-            <div><strong>${fileLabel}</strong><small>提交时间：${formatDispatchTime(deliverable.submittedAt)}</small></div>
-            ${safe
-              ? `<a class="dispatch-secondary" href="${escapeDispatchHtml(deliverable.dataUrl)}" download="${escapeDispatchHtml(deliverable.name)}">查看 / 下载作业</a>`
-              : '<span class="status-pill status-rejected">文件不可用</span>'}
+            <div class="deliverable-details">
+              <strong>${fileLabel}</strong>
+              <small>提交时间：${formatDispatchTime(deliverable.submittedAt)}</small>
+              ${deliverable.note ? `<small>提交说明：${escapeDispatchHtml(deliverable.note)}</small>` : ""}
+              ${deliverable.reviewedAt ? `<small>审核时间：${formatDispatchTime(deliverable.reviewedAt)}</small>` : ""}
+            </div>
+            <div class="deliverable-status-column">
+              <span class="status-pill ${reviewClass}">${reviewLabel}</span>
+              ${safe
+                ? `<a class="dispatch-secondary" href="${escapeDispatchHtml(deliverable.dataUrl)}" download="${escapeDispatchHtml(deliverable.name)}">查看 / 下载作业</a>`
+                : '<span class="status-pill status-rejected">文件不可用</span>'}
+            </div>
+            ${managerActions}
           </article>`;
       }).join("")}
     </div>`;
@@ -347,7 +393,8 @@ function tutoringProgressMarkup(request, role, showEntry = true) {
         <span style="width: ${progress}%"></span>
       </div>
       <small>${progressNote ? `最新说明：${escapeDispatchHtml(progressNote)}` : "等待辅导员更新进度说明。"}</small>
-      ${deliverableListMarkup(request)}
+      ${role === "manager" ? '<div class="manager-deliverable-heading"><strong>完成作业审核</strong><span>审核通过后文件才会显示在学员端</span></div>' : ""}
+      ${deliverableListMarkup(request, role)}
       ${showEntry ? `<a class="dispatch-primary progress-entry-link" href="${escapeDispatchHtml(entryHref)}">进入辅导进度</a>` : ""}
     </section>`;
 }
@@ -967,8 +1014,8 @@ function initProgressPage() {
     heroEyebrow.textContent = role === "mentor" ? "Tutor progress workspace" : "Tutoring progress";
     heroTitle.textContent = role === "mentor" ? "更新辅导进度并提交完成作业" : "查看辅导进度与接收完成作业";
     heroDescription.textContent = role === "mentor"
-      ? "你可以更新订单的完成比例和进度说明，并向学员提交完成作业；双方联系方式仍由店长统一保管。"
-      : "辅导员更新的进度和提交的完成作业会显示在这里，你可以直接查看或下载；双方联系方式仍由店长统一保管。";
+      ? "你可以更新订单的完成比例和进度说明，并把完成作业提交给店长审核；审核通过后才会发送到学员端。"
+      : "你可以查看辅导进度；辅导员提交的完成作业须经店长审核通过后，才会在这里开放查看和下载。";
     orderSummary.innerHTML = `
       <div class="order-card-top"><span class="order-id">${escapeDispatchHtml(request.id)}</span>${dispatchStatusMarkup(request.status)}</div>
       <h2>${escapeDispatchHtml(request.subject)}</h2>
@@ -1030,14 +1077,17 @@ function initProgressPage() {
       const requests = getDispatchRequests();
       const request = requests.find((item) => item.id === requestId);
       const submissionNote = document.querySelector("#mentorDeliverableNote").value.trim();
+      deliverable.note = submissionNote;
+      deliverable.reviewStatus = "pending";
+      deliverable.reviewedAt = "";
       request.deliverables = [...(Array.isArray(request.deliverables) ? request.deliverables : []), deliverable];
       request.progress = 100;
-      request.progressNote = submissionNote || "完成作业已提交，请学员查看或下载。";
+      request.progressNote = "完成作业已提交，正在等待店长审核。";
       request.progressUpdatedAt = deliverable.submittedAt;
       request.updatedAt = deliverable.submittedAt;
       saveDispatchRequests(requests);
       deliverableForm.reset();
-      showDispatchMessage(deliverableMessage, "完成作业已提交，双方进度已同步为 100%。", true);
+      showDispatchMessage(deliverableMessage, "完成作业已提交给店长审核；审核通过后才会显示在学员端。", true);
       renderProgressPage();
     } catch (error) {
       const message = error?.name === "QuotaExceededError"
@@ -1084,7 +1134,7 @@ function managerRequestMarkup(request, studentContacts, mentorContacts) {
           <h3>${escapeDispatchHtml(request.major)} · ${escapeDispatchHtml(request.subject)}</h3>
           ${orderMetaMarkup(request)}
           <p class="order-description">${escapeDispatchHtml(request.description)}</p>
-          ${["accepted", "completed"].includes(request.status) ? tutoringProgressMarkup(request, "student", false) : ""}
+          ${["accepted", "completed"].includes(request.status) ? tutoringProgressMarkup(request, "manager", false) : ""}
           ${preferredMentor ? `<div class="private-box preferred-request-box"><strong>学员预约意向</strong><span>${escapeDispatchHtml(preferredMentor.name)} · ${request.applications?.includes(preferredMentor.id) ? "辅导员已接受，等待审核" : "等待辅导员接受预约申请"}</span></div>` : ""}
           <div class="private-box">
             <strong>学员联系方式（仅店长可见）</strong>
@@ -1102,7 +1152,9 @@ function managerRequestMarkup(request, studentContacts, mentorContacts) {
             <button class="dispatch-primary" type="button" data-assign-request="${escapeDispatchHtml(request.id)}"${appliedCount ? "" : " disabled"}>${request.assignedMentorId ? "重新审核" : "审核通过并派单"}</button>
           </div>
           <div class="order-actions">
-            ${request.status === "accepted" ? `<button class="dispatch-secondary" type="button" data-complete-request="${escapeDispatchHtml(request.id)}">标记完成</button>` : ""}
+            ${request.status === "accepted" ? requestHasApprovedDeliverable(request)
+              ? `<button class="dispatch-secondary" type="button" data-complete-request="${escapeDispatchHtml(request.id)}">标记完成</button>`
+              : '<button class="dispatch-secondary" type="button" disabled>请先审核完成作业</button>' : ""}
             ${request.status === "completed" ? `<button class="dispatch-secondary" type="button" data-reopen-request="${escapeDispatchHtml(request.id)}">重新打开</button>` : ""}
           </div>
           <span class="privacy-mask">审核通过后学员只看到辅导员名片，不显示联系方式</span>
@@ -1225,8 +1277,36 @@ function initManagerDispatch(onInvalidSession) {
     const reopenButton = event.target.closest("[data-reopen-request]");
     const approveMentorButton = event.target.closest("[data-approve-mentor-account]");
     const rejectMentorButton = event.target.closest("[data-reject-mentor-account]");
-    if (!assignButton && !completeButton && !reopenButton && !approveMentorButton && !rejectMentorButton) return;
+    const approveDeliverableButton = event.target.closest("[data-approve-deliverable]");
+    const rejectDeliverableButton = event.target.closest("[data-reject-deliverable]");
+    if (!assignButton && !completeButton && !reopenButton && !approveMentorButton && !rejectMentorButton
+      && !approveDeliverableButton && !rejectDeliverableButton) return;
     if (!requireManagerSession()) return;
+
+    if (approveDeliverableButton || rejectDeliverableButton) {
+      const reviewButton = approveDeliverableButton || rejectDeliverableButton;
+      const requestId = reviewButton.dataset.deliverableRequest;
+      const deliverableId = approveDeliverableButton?.dataset.approveDeliverable || rejectDeliverableButton?.dataset.rejectDeliverable;
+      const requests = getDispatchRequests();
+      const request = requests.find((item) => item.id === requestId);
+      const deliverable = request?.deliverables?.find((item) => item.id === deliverableId);
+      if (!request || request.status === "completed" || !deliverable) return;
+      const reviewedAt = new Date().toISOString();
+      deliverable.reviewStatus = approveDeliverableButton ? "approved" : "rejected";
+      deliverable.reviewedAt = reviewedAt;
+      if (approveDeliverableButton) {
+        request.progress = 100;
+        request.progressNote = "店长审核通过，完成作业已发送到学员端。";
+      } else if (!requestHasApprovedDeliverable(request)) {
+        request.progress = Math.min(requestProgress(request), 95);
+        request.progressNote = "完成作业未通过店长审核，请辅导员重新提交。";
+      }
+      request.progressUpdatedAt = reviewedAt;
+      request.updatedAt = reviewedAt;
+      saveDispatchRequests(requests);
+      renderManagerDispatch();
+      return;
+    }
 
     if (approveMentorButton || rejectMentorButton) {
       const accountId = approveMentorButton?.dataset.approveMentorAccount || rejectMentorButton?.dataset.rejectMentorAccount;
@@ -1262,7 +1342,7 @@ function initManagerDispatch(onInvalidSession) {
       request.reviewedAt = new Date().toISOString();
       request.studentBookedAt = "";
     }
-    if (completeButton && request.status === "accepted") {
+    if (completeButton && request.status === "accepted" && requestHasApprovedDeliverable(request)) {
       request.status = "completed";
       request.progress = 100;
       request.progressUpdatedAt = new Date().toISOString();
