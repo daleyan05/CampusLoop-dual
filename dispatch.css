@@ -298,9 +298,106 @@ html[data-dispatch-role="manager"] .fee-protection-note strong { color: var(--ma
 .mentor-auth-intro h1, .student-auth-intro h1 { margin: 0; font-size: clamp(36px, 5vw, 64px); line-height: 1; letter-spacing: -0.04em; }
 .mentor-auth-intro > p, .student-auth-intro > p { margin: 0; color: var(--muted); line-height: 1.7; }
 .mentor-auth-grid, .student-auth-grid { display: grid; grid-template-columns: minmax(280px, 0.7fr) minmax(0, 1.3fr); gap: 18px; align-items: start; }
+.mentor-auth-grid.single, .student-auth-grid.single { grid-template-columns: minmax(0, 820px); }
 .mentor-auth-grid h2, .student-auth-grid h2 { margin: 0; font-size: 30px; }
 .student-auth-gate { background: radial-gradient(circle at 15% 4%, rgba(47, 125, 104, 0.11), transparent 28%); }
 .student-auth-intro .privacy-card { max-width: 760px; }
+
+.auth-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: min(100%, 820px);
+  margin-bottom: 14px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #e9eeec;
+}
+.auth-mode-button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 900;
+}
+.auth-mode-button.active { background: var(--white); color: var(--ink); box-shadow: 0 5px 16px rgba(23, 33, 45, 0.08); }
+html[data-dispatch-role="student"] .auth-mode-button.active { color: var(--student); }
+html[data-dispatch-role="mentor"] .auth-mode-button.active { color: var(--mentor); }
+
+.workspace-hub {
+  display: grid;
+  gap: 24px;
+  padding: 0 clamp(18px, 5vw, 68px) clamp(42px, 7vw, 82px);
+}
+.workspace-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  padding-top: 8px;
+}
+.workspace-heading h2 { margin: 0; font-size: clamp(30px, 4vw, 48px); letter-spacing: -0.035em; }
+.workspace-heading > p { max-width: 520px; margin: 0; color: var(--muted); line-height: 1.65; }
+.workspace-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.workspace-card-grid.manager-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.workspace-card {
+  display: grid;
+  min-height: 210px;
+  grid-template-rows: auto 1fr auto;
+  gap: 20px;
+  padding: clamp(20px, 3vw, 28px);
+  border: 1px solid var(--line);
+  border-top: 5px solid #cbd4dc;
+  border-radius: 14px;
+  background: var(--white);
+  box-shadow: 0 12px 34px rgba(23, 33, 45, 0.07);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+.workspace-card:hover, .workspace-card:focus-visible { transform: translateY(-3px); border-color: #aebbc5; box-shadow: 0 20px 42px rgba(23, 33, 45, 0.12); outline: none; }
+.workspace-card.featured { border-top-color: var(--student); }
+html[data-dispatch-role="mentor"] .workspace-card.featured { border-top-color: var(--mentor); }
+html[data-dispatch-role="manager"] .workspace-card.featured { border-top-color: var(--manager); }
+.workspace-card-number { color: var(--muted); font-size: 12px; font-weight: 900; letter-spacing: 0.08em; }
+.workspace-card > div { align-self: center; }
+.workspace-card strong { display: block; margin-bottom: 9px; font-size: clamp(21px, 2.4vw, 29px); line-height: 1.12; }
+.workspace-card p { margin: 0; color: var(--muted); line-height: 1.6; }
+.workspace-card-arrow { justify-self: end; color: var(--student); font-size: 13px; font-weight: 900; }
+html[data-dispatch-role="mentor"] .workspace-card-arrow { color: var(--mentor); }
+html[data-dispatch-role="manager"] .workspace-card-arrow { color: var(--manager); }
+
+.workspace-content {
+  display: grid;
+  width: min(1180px, 100%);
+  gap: 22px;
+  margin: 0 auto;
+  padding: clamp(30px, 5vw, 62px) clamp(18px, 5vw, 50px) 64px;
+}
+.workspace-page-heading { display: grid; gap: 22px; }
+.workspace-page-heading > div { display: grid; gap: 10px; }
+.workspace-page-heading h1 { margin: 0; font-size: clamp(38px, 6vw, 64px); line-height: 1; letter-spacing: -0.04em; }
+.workspace-page-heading > div > p:last-child { max-width: 720px; margin: 0; color: var(--muted); font-size: 16px; line-height: 1.65; }
+.workspace-back {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 38px;
+  align-items: center;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+.workspace-back:hover { color: var(--ink); border-color: #aebbc5; }
+.workspace-content > .dispatch-panel,
+.workspace-content > .mentor-booking-panel,
+.workspace-content > .manager-control-panel,
+.workspace-content > .manager-verification-panel,
+.workspace-content > .manager-security-panel { margin: 0; }
 
 .consent-row { grid-template-columns: auto minmax(0, 1fr); align-items: start; font-weight: 600; line-height: 1.5; }
 .consent-row input { width: 18px; height: 18px; min-height: 0; margin: 2px 0 0; }
@@ -628,14 +725,17 @@ html[data-dispatch-role="mentor"] .progress-track > span { background: linear-gr
 @media (max-width: 1050px) {
   .dispatch-hero, .student-grid, .mentor-grid, .manager-order-grid, .mentor-auth-grid, .student-auth-grid, .progress-layout { grid-template-columns: 1fr; }
   .manager-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .mentor-directory, .student-mentor-directory { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mentor-directory, .student-mentor-directory, .workspace-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 720px) {
   .fee-preview-grid, .fee-summary-grid, .manager-fee-actions { grid-template-columns: 1fr; }
   .dispatch-hero { padding-top: 34px; }
   .dispatch-hero h1 { font-size: clamp(38px, 12vw, 58px); }
-  .form-grid.two, .form-grid.three, .manager-filters, .assignment-controls, .mentor-directory, .student-mentor-directory, .manager-stats, .manager-password-form, .verification-photos, .progress-control-grid { grid-template-columns: 1fr; }
+  .form-grid.two, .form-grid.three, .manager-filters, .assignment-controls, .mentor-directory, .student-mentor-directory, .manager-stats, .manager-password-form, .verification-photos, .progress-control-grid, .workspace-card-grid, .workspace-card-grid.manager-cards { grid-template-columns: 1fr; }
+  .auth-mode-switch { grid-template-columns: 1fr; }
+  .workspace-heading { align-items: flex-start; flex-direction: column; }
+  .workspace-card { min-height: 180px; }
   .panel-heading { flex-direction: column; }
   .selected-mentor-notice { align-items: stretch; flex-direction: column; }
   .step-badge { white-space: normal; }

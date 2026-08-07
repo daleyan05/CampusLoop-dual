@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CampusLoop 店长派单入口</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="dispatch.css?v=20260806-fees2" />
+    <link rel="stylesheet" href="dispatch.css?v=20260807-focus1" />
   </head>
   <body>
     <header class="dispatch-topbar">
@@ -33,6 +33,7 @@
     </section>
 
     <main class="dispatch-shell" id="managerApp" hidden>
+      <section class="workspace-view" data-workspace-view="home">
       <section class="dispatch-hero manager-hero">
         <div>
           <p class="dispatch-eyebrow">Private dispatch console</p>
@@ -54,6 +55,22 @@
         <article class="manager-fee-stat collected"><span>已收平台手续费</span><strong id="managerFeeCollectedTotal">￥0.00</strong></article>
       </section>
 
+      <section class="workspace-hub" aria-labelledby="managerWorkspaceTitle">
+        <div class="workspace-heading">
+          <div><p class="dispatch-eyebrow">Manager workspace</p><h2 id="managerWorkspaceTitle">店长工作台</h2></div>
+          <p>按任务进入独立页面，避免审核资料、派单和账户设置混在一起。</p>
+        </div>
+        <div class="workspace-card-grid manager-cards">
+          <a class="workspace-card featured" href="#dispatch"><span class="workspace-card-number">01</span><div><strong>订单审核与派单</strong><p>处理抢单、双方手续费、进度与作业质量。</p></div><span class="workspace-card-arrow">进入 →</span></a>
+          <a class="workspace-card" href="#verification"><span class="workspace-card-number">02</span><div><strong>实名认证审核</strong><p>核验辅导员人脸照与身份证资料。</p></div><span class="workspace-card-arrow">进入 →</span></a>
+          <a class="workspace-card" href="#mentors"><span class="workspace-card-number">03</span><div><strong>辅导员资源库</strong><p>查看专业、地区、证明与平台联系方式。</p></div><span class="workspace-card-arrow">进入 →</span></a>
+          <a class="workspace-card" href="#security"><span class="workspace-card-number">04</span><div><strong>账号安全</strong><p>单独修改唯一店长账号的密码。</p></div><span class="workspace-card-arrow">进入 →</span></a>
+        </div>
+      </section>
+      </section>
+
+      <section class="workspace-view workspace-content" data-workspace-view="verification" hidden>
+        <div class="workspace-page-heading"><a class="workspace-back" href="#home">← 返回功能菜单</a><div><p class="dispatch-eyebrow">Identity review</p><h1>实名认证审核</h1><p>本页只处理辅导员认证资料，避免与订单审核混淆。</p></div></div>
       <section class="dispatch-panel manager-verification-panel">
         <div class="panel-heading">
           <div><p class="dispatch-eyebrow">Identity review</p><h2>辅导员实名认证审核</h2></div>
@@ -62,7 +79,10 @@
         <p class="panel-note">仅店长可查看认证照片。确认一致后通过；资料模糊或不一致时请驳回。</p>
         <div class="dispatch-list" id="managerMentorVerificationList"></div>
       </section>
+      </section>
 
+      <section class="workspace-view workspace-content" data-workspace-view="dispatch" hidden>
+        <div class="workspace-page-heading"><a class="workspace-back" href="#home">← 返回功能菜单</a><div><p class="dispatch-eyebrow">Dispatch board</p><h1>订单审核与派单</h1><p>集中处理抢单审核、双方服务费、进度和完成作业。</p></div></div>
       <section class="dispatch-panel manager-control-panel">
         <div class="panel-heading">
           <div><p class="dispatch-eyebrow">Dispatch board</p><h2>需求、抢单审核与派单</h2></div>
@@ -73,12 +93,18 @@
         </div>
         <div class="dispatch-list manager-request-list" id="managerRequestList"></div>
       </section>
+      </section>
 
+      <section class="workspace-view workspace-content" data-workspace-view="mentors" hidden>
+        <div class="workspace-page-heading"><a class="workspace-back" href="#home">← 返回功能菜单</a><div><p class="dispatch-eyebrow">Mentor directory</p><h1>辅导员资源库</h1><p>单独查看已认证辅导员的专业资料和平台联系方式。</p></div></div>
       <section class="dispatch-panel">
         <div class="panel-heading"><div><p class="dispatch-eyebrow">Mentor directory</p><h2>辅导员资源库</h2></div><span class="step-badge">联系方式仅此处可见</span></div>
         <div class="mentor-directory" id="managerMentorList"></div>
       </section>
+      </section>
 
+      <section class="workspace-view workspace-content" data-workspace-view="security" hidden>
+        <div class="workspace-page-heading"><a class="workspace-back" href="#home">← 返回功能菜单</a><div><p class="dispatch-eyebrow">Account security</p><h1>账号安全</h1><p>这里仅用于修改唯一店长账号的密码。</p></div></div>
       <section class="dispatch-panel manager-security-panel">
         <div class="panel-heading">
           <div><p class="dispatch-eyebrow">Account security</p><h2>更改店长密码</h2></div>
@@ -92,8 +118,9 @@
           <p class="dispatch-message" id="managerPasswordMessage" aria-live="polite"></p>
         </form>
       </section>
+      </section>
     </main>
-    <script src="i18n.js?v=20260806-fees2"></script>
-    <script src="dispatch.js?v=20260806-fees2"></script>
+    <script src="i18n.js?v=20260807-focus1"></script>
+    <script src="dispatch.js?v=20260807-focus1"></script>
   </body>
 </html>

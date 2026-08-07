@@ -737,7 +737,8 @@ function initStudentDispatch(accountId) {
     selectedMentorName.textContent = mentor.name;
     selectedMentorNotice.hidden = false;
     showDispatchMessage(message, `已选择 ${mentor.name}，请填写并提交具体辅导需求。`, true);
-    form.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.location.hash = "request";
+    window.setTimeout(() => form.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
 
   function clearPreferredMentor() {
@@ -833,6 +834,7 @@ function initStudentDispatch(accountId) {
       : `需求 ${request.id} 已提交；找辅导方 7% 服务费为 ${formatRmbMoney(requestPlatformFee(request))}。`, true);
     renderStudentRequests();
     renderStudentMentors();
+    window.setTimeout(() => { window.location.hash = "orders"; }, 650);
   });
 
   mentorDirectory.addEventListener("click", (event) => {
@@ -1763,7 +1765,54 @@ async function initManagerAccess() {
   });
 }
 
+function initDispatchAuthMode() {
+  const buttons = [...document.querySelectorAll("[data-auth-target]")];
+  const panels = [...document.querySelectorAll("[data-auth-panel]")];
+  if (!buttons.length || !panels.length) return;
+
+  function showAuthMode(mode) {
+    const nextMode = panels.some((panel) => panel.dataset.authPanel === mode) ? mode : "login";
+    buttons.forEach((button) => {
+      const active = button.dataset.authTarget === nextMode;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    panels.forEach((panel) => { panel.hidden = panel.dataset.authPanel !== nextMode; });
+    const activePanel = panels.find((panel) => panel.dataset.authPanel === nextMode);
+    window.setTimeout(() => activePanel?.querySelector("input")?.focus(), 0);
+  }
+
+  buttons.forEach((button) => button.addEventListener("click", () => showAuthMode(button.dataset.authTarget)));
+  showAuthMode("login");
+}
+
+function initDispatchWorkspaceNavigation() {
+  const views = [...document.querySelectorAll("[data-workspace-view]")];
+  if (!views.length) return;
+  const validRoutes = new Set(views.map((view) => view.dataset.workspaceView));
+  const aliases = {
+    dashboard: "home",
+    activity: "home",
+    requests: dispatchRole === "student" ? "orders" : "open-orders",
+    profile: validRoutes.has("profile") ? "profile" : "home"
+  };
+
+  function renderWorkspaceRoute() {
+    const rawRoute = window.location.hash.slice(1).trim();
+    const route = validRoutes.has(rawRoute) ? rawRoute : (aliases[rawRoute] || "home");
+    views.forEach((view) => { view.hidden = view.dataset.workspaceView !== route; });
+    document.body.dataset.workspaceRoute = route;
+    if (rawRoute !== route) history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${route}`);
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  window.addEventListener("hashchange", renderWorkspaceRoute);
+  renderWorkspaceRoute();
+}
+
 if (dispatchRole === "student") initStudentAuth();
 if (dispatchRole === "mentor") initMentorAuth();
 if (dispatchRole === "manager") initManagerAccess();
 if (dispatchRole === "progress") initProgressPage();
+initDispatchAuthMode();
+initDispatchWorkspaceNavigation();

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CampusLoop 辅导员接单入口</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="dispatch.css?v=20260806-fees2" />
+    <link rel="stylesheet" href="dispatch.css?v=20260807-focus1" />
   </head>
   <body>
     <header class="dispatch-topbar">
@@ -27,8 +27,12 @@
             <span>当前为本地静态演示，资料仅保存在当前浏览器。请勿上传真实身份证；正式上线须接入加密后台与合规实名认证服务。</span>
           </div>
         </div>
-        <div class="mentor-auth-grid">
-          <form class="dispatch-panel dispatch-form" id="mentorLoginForm">
+        <div class="auth-mode-switch" aria-label="选择登录或注册">
+          <button class="auth-mode-button active" type="button" data-auth-target="login">已有认证账号，直接登录</button>
+          <button class="auth-mode-button" type="button" data-auth-target="register">新辅导员，注册认证</button>
+        </div>
+        <div class="mentor-auth-grid single">
+          <form class="dispatch-panel dispatch-form auth-mode-panel" id="mentorLoginForm" data-auth-panel="login">
             <div><p class="dispatch-eyebrow">Mentor login</p><h2>辅导员登录</h2></div>
             <label><span>登录账号</span><input id="mentorLoginAccount" type="text" required autocomplete="username" placeholder="手机号或邮箱" /></label>
             <label><span>密码</span><input id="mentorLoginPassword" type="password" required autocomplete="current-password" /></label>
@@ -36,7 +40,7 @@
             <button class="dispatch-primary" type="submit">认证账号登录</button>
           </form>
 
-          <form class="dispatch-panel dispatch-form" id="mentorRegisterForm">
+          <form class="dispatch-panel dispatch-form auth-mode-panel" id="mentorRegisterForm" data-auth-panel="register" hidden>
             <div><p class="dispatch-eyebrow">New mentor</p><h2>注册与实名认证</h2></div>
             <div class="form-grid two">
               <label><span>真实姓名</span><input id="mentorRegisterName" type="text" required autocomplete="name" /></label>
@@ -56,6 +60,7 @@
       </section>
 
       <div id="mentorApp" hidden>
+      <section class="workspace-view" data-workspace-view="home">
       <section class="dispatch-hero mentor-hero">
         <div>
           <p class="dispatch-eyebrow">Mentor workspace</p>
@@ -68,6 +73,21 @@
         </div>
       </section>
 
+      <section class="workspace-hub" aria-labelledby="mentorWorkspaceTitle">
+        <div class="workspace-heading">
+          <div><p class="dispatch-eyebrow">Mentor workspace</p><h2 id="mentorWorkspaceTitle">辅导员工作台</h2></div>
+          <p>资料、抢单和进行中的订单分开处理，重点更清楚。</p>
+        </div>
+        <div class="workspace-card-grid">
+          <a class="workspace-card featured" href="#open-orders"><span class="workspace-card-number">01</span><div><strong>进入抢单大厅</strong><p>查看脱敏需求并申请接单。</p></div><span class="workspace-card-arrow">进入 →</span></a>
+          <a class="workspace-card" href="#assignments"><span class="workspace-card-number">02</span><div><strong>我的订单</strong><p>查看审核结果、学习进度和作业提交。</p></div><span class="workspace-card-arrow">进入 →</span></a>
+          <a class="workspace-card" href="#profile"><span class="workspace-card-number">03</span><div><strong>辅导员资料</strong><p>单独维护专业、地区、时间和证明。</p></div><span class="workspace-card-arrow">进入 →</span></a>
+        </div>
+      </section>
+      </section>
+
+      <section class="workspace-view workspace-content" data-workspace-view="profile" hidden>
+        <div class="workspace-page-heading"><a class="workspace-back" href="#home">← 返回功能菜单</a><div><p class="dispatch-eyebrow">Mentor profile</p><h1>辅导员资料</h1><p>维护专业能力、接单地区、预约时间和认证证明。</p></div></div>
       <section class="dispatch-panel dispatch-form compact" id="mentorProfilePanel">
         <div class="panel-heading">
           <div><p class="dispatch-eyebrow">Mentor profile</p><h2>辅导能力与接单地区</h2></div>
@@ -109,12 +129,18 @@
           <button class="dispatch-primary" type="submit">保存辅导员资料</button>
         </form>
       </section>
+      </section>
 
-      <section class="dispatch-grid mentor-grid">
+      <section class="workspace-view workspace-content" data-workspace-view="open-orders" hidden>
+        <div class="workspace-page-heading"><a class="workspace-back" href="#home">← 返回功能菜单</a><div><p class="dispatch-eyebrow">Open requests</p><h1>抢单大厅</h1><p>这里只展示可以申请的脱敏订单，抢单后需要店长审核。</p></div></div>
         <section class="dispatch-panel">
           <div class="panel-heading"><div><p class="dispatch-eyebrow">Open requests</p><h2>可抢订单</h2></div><span class="step-badge">抢单后由店长审核</span></div>
           <div class="dispatch-list" id="mentorOpenList"></div>
         </section>
+      </section>
+
+      <section class="workspace-view workspace-content" data-workspace-view="assignments" hidden>
+        <div class="workspace-page-heading"><a class="workspace-back" href="#home">← 返回功能菜单</a><div><p class="dispatch-eyebrow">My assignments</p><h1>我的订单</h1><p>查看抢单审核、进行中订单、进度更新和作业提交入口。</p></div></div>
         <section class="dispatch-panel">
           <div class="panel-heading"><div><p class="dispatch-eyebrow">My assignments</p><h2>我的抢单与审核结果</h2></div></div>
           <div class="dispatch-list" id="mentorAssignmentList"></div>
@@ -122,7 +148,7 @@
       </section>
       </div>
     </main>
-    <script src="i18n.js?v=20260806-fees2"></script>
-    <script src="dispatch.js?v=20260806-fees2"></script>
+    <script src="i18n.js?v=20260807-focus1"></script>
+    <script src="dispatch.js?v=20260807-focus1"></script>
   </body>
 </html>
