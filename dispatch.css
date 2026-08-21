@@ -90,7 +90,8 @@ a { color: inherit; text-decoration: none; }
   background: var(--white);
   box-shadow: 0 24px 70px rgba(23, 33, 45, 0.13);
 }
-.manager-lock-icon { font-size: 38px; }
+.manager-lock-icon { display:grid; width:46px; height:46px; place-items:center; color:var(--manager); }
+.manager-lock-icon .lucide { width:34px; height:34px; stroke-width:1.8; }
 .manager-login-card h1 { margin: 0; font-size: clamp(36px, 7vw, 56px); line-height: 1; }
 .manager-login-card > p:not(.dispatch-eyebrow) { margin: 0; color: var(--muted); line-height: 1.7; }
 .manager-account-row {
@@ -530,7 +531,7 @@ html[data-progress-view-role="mentor"] .dispatch-primary { background: var(--men
 .status-rejected { background: #fff0ef; color: var(--danger); }
 .matching-score { color: var(--student); font-size: 13px; font-weight: 900; }
 .privacy-mask { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 800; }
-.privacy-mask::before { content: "🔒"; }
+.privacy-mask .lucide { width: 14px; height: 14px; color: var(--mentor); stroke-width: 2; }
 
 .tutoring-progress-card {
   display: grid;
@@ -647,7 +648,8 @@ html[data-dispatch-role="mentor"] .progress-track > span { background: linear-gr
   background: var(--white);
   box-shadow: var(--shadow);
 }
-.progress-lock { font-size: 38px; }
+.progress-lock { display:grid; width:46px; height:46px; place-items:center; color:var(--mentor); }
+.progress-lock .lucide { width:34px; height:34px; stroke-width:1.8; }
 .progress-access-panel h1 { margin: 0; font-size: clamp(30px, 5vw, 48px); line-height: 1.05; }
 .progress-access-panel > p:not(.dispatch-eyebrow) { margin: 0; color: var(--muted); line-height: 1.7; }
 .progress-back-link { min-height: 36px; padding-inline: 13px; }

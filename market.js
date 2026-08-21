@@ -1,6 +1,9 @@
 (() => {
   "use strict";
 
+  const cloud = globalThis.CampusLoopMarketCloud;
+  const cloudEnabled = Boolean(cloud?.configured);
+
   const STORAGE = {
     users: "campusLoopMarketUsersV2",
     session: "campusLoopMarketSessionV2",
@@ -16,12 +19,12 @@
   };
 
   const categoryIcons = {
-    教材书籍: "📚",
-    家具家居: "🪑",
-    数码电器: "💻",
-    厨房用品: "🍳",
-    服饰用品: "🧥",
-    其他: "📦"
+    教材书籍: "book-open",
+    家具家居: "lamp-desk",
+    数码电器: "monitor-smartphone",
+    厨房用品: "cooking-pot",
+    服饰用品: "shirt",
+    其他: "package"
   };
 
   // 193 个联合国会员国，加上巴勒斯坦和梵蒂冈，共 195 个国家。
@@ -224,11 +227,13 @@
     ]);
   }
 
-  migrateLegacyData();
-  seedItems();
+  if (!cloudEnabled) {
+    migrateLegacyData();
+    seedItems();
+  }
 
-  let users = safeLoad(STORAGE.users, []);
-  let items = safeLoad(STORAGE.items, []);
+  let users = cloudEnabled ? [] : safeLoad(STORAGE.users, []);
+  let items = cloudEnabled ? [] : safeLoad(STORAGE.items, []);
   const demoCityById = {
     "demo-item-desk": "London",
     "demo-item-book": "Manchester",
@@ -245,14 +250,17 @@
     return { ...item, city };
   });
   if (demoLocationsChanged) save(STORAGE.items, items);
-  let conversations = safeLoad(STORAGE.conversations, []);
-  let session = safeLoad(STORAGE.session, null);
-  let currentUser = users.find((user) => user.id === session?.userId) || null;
+  let conversations = cloudEnabled ? [] : safeLoad(STORAGE.conversations, []);
+  let session = cloudEnabled ? null : safeLoad(STORAGE.session, null);
+  let currentUser = cloudEnabled ? null : users.find((user) => user.id === session?.userId) || null;
   let authMode = "login";
   let pendingAction = null;
   let selectedConversationId = "";
   let pendingPhoto = "";
   let toastTimer = 0;
+  let realtimeUnsubscribe = null;
+  let cloudRefreshPending = false;
+  let cloudRefreshQueued = false;
 
   const elements = {
     accountLabel: $("#accountLabel"),
@@ -297,6 +305,7 @@
     messageForm: $("#messageForm"),
     messageInput: $("#messageInput"),
     unreadBadge: $("#unreadBadge"),
+    connectionStatus: $("#connectionStatus"),
     toast: $("#toast")
   };
 
@@ -307,6 +316,51 @@
     toastTimer = window.setTimeout(() => {
       elements.toast.hidden = true;
     }, 2600);
+  }
+
+  function renderConnectionStatus() {
+    elements.connectionStatus.classList.toggle("cloud", cloudEnabled);
+    elements.connectionStatus.classList.toggle("local", !cloudEnabled);
+    elements.connectionStatus.innerHTML = cloudEnabled
+      ? '<i data-lucide="cloud"></i><span>实时消息已连接</span>'
+      : '<i data-lucide="hard-drive"></i><span>本地演示 · 对方无法收到</span>';
+  }
+
+  function mergeCloudUsers(cloudUsers = []) {
+    const byId = new Map(users.map((user) => [user.id, user]));
+    cloudUsers.forEach((user) => byId.set(user.id, { ...byId.get(user.id), ...user }));
+    if (currentUser) byId.set(currentUser.id, currentUser);
+    users = [...byId.values()];
+  }
+
+  async function refreshCloudData({ includeItems = true } = {}) {
+    if (!cloudEnabled) return;
+    if (cloudRefreshPending) {
+      cloudRefreshQueued = true;
+      return;
+    }
+    cloudRefreshPending = true;
+    try {
+      if (includeItems) items = await cloud.listItems();
+      if (currentUser) {
+        const result = await cloud.listConversations(currentUser.id);
+        conversations = result.conversations;
+        mergeCloudUsers(result.users);
+      } else {
+        conversations = [];
+      }
+      syncLocationFilters();
+      renderAccount();
+    } catch (error) {
+      console.error("CampusLoop cloud refresh failed", error);
+      showToast("云端数据暂时无法加载，请检查网络后重试。");
+    } finally {
+      cloudRefreshPending = false;
+      if (cloudRefreshQueued) {
+        cloudRefreshQueued = false;
+        window.setTimeout(() => refreshCloudData({ includeItems: false }), 0);
+      }
+    }
   }
 
   function initials(name) {
@@ -473,7 +527,9 @@
       image.alt = item.title;
       photo.append(image);
     } else {
-      photo.textContent = categoryIcons[item.category] || categoryIcons.其他;
+      const icon = document.createElement("i");
+      icon.dataset.lucide = categoryIcons[item.category] || categoryIcons.其他;
+      photo.append(icon);
     }
     const chip = document.createElement("span");
     chip.className = "category-chip";
@@ -496,7 +552,11 @@
     description.textContent = item.description || "卖家暂未填写商品描述。";
     const location = document.createElement("span");
     location.className = "item-location";
-    location.textContent = `⌖ ${item.country} · ${item.city} · ${item.area}`;
+    const locationIcon = document.createElement("i");
+    locationIcon.dataset.lucide = "map-pin";
+    const locationText = document.createElement("span");
+    locationText.textContent = `${item.country} · ${item.city} · ${item.area}`;
+    location.append(locationIcon, locationText);
     const seller = document.createElement("span");
     seller.className = "item-seller";
     seller.textContent = `卖家：${item.sellerName || "CampusLoop 用户"} · ${formatDate(item.createdAt)}`;
@@ -593,10 +653,15 @@
     if (clearPending) pendingAction = null;
   }
 
-  function finishAuthentication(user) {
+  async function finishAuthentication(user) {
     currentUser = user;
-    session = { userId: user.id };
-    save(STORAGE.session, session);
+    mergeCloudUsers([user]);
+    if (!cloudEnabled) {
+      session = { userId: user.id };
+      save(STORAGE.session, session);
+    } else {
+      await refreshCloudData();
+    }
     const action = pendingAction;
     closeModal(elements.authModal, false);
     pendingAction = null;
@@ -606,7 +671,7 @@
     if (action?.type === "contact") contactSeller(action.itemId);
   }
 
-  function handleAuthSubmit(event) {
+  async function handleAuthSubmit(event) {
     event.preventDefault();
     const email = normalizeEmail(elements.authEmail.value);
     const password = elements.authPassword.value;
@@ -619,6 +684,33 @@
     }
     if (password.length < 6) {
       elements.authMessage.textContent = "密码至少需要 6 位。";
+      return;
+    }
+
+    if (cloudEnabled) {
+      elements.authSubmitButton.disabled = true;
+      elements.authMessage.textContent = authMode === "register" ? "正在创建安全账号…" : "正在登录…";
+      try {
+        if (authMode === "register") {
+          const result = await cloud.signUp({ name, email, password });
+          if (result.needsEmailConfirmation) {
+            elements.authMessage.textContent = "验证邮件已发送。请先打开邮件完成验证，再返回登录。";
+            elements.authMessage.classList.add("success");
+            return;
+          }
+          await finishAuthentication(result.user);
+          return;
+        }
+        const result = await cloud.signIn({ email, password });
+        await finishAuthentication(result.user);
+      } catch (error) {
+        console.error("CampusLoop authentication failed", error);
+        elements.authMessage.textContent = error?.message === "Invalid login credentials"
+          ? "邮箱或密码不正确。"
+          : "登录服务暂时不可用，请稍后重试。";
+      } finally {
+        elements.authSubmitButton.disabled = false;
+      }
       return;
     }
 
@@ -648,11 +740,18 @@
     finishAuthentication(user);
   }
 
-  function logout() {
+  async function logout() {
+    if (cloudEnabled) {
+      try {
+        await cloud.signOut();
+      } catch (error) {
+        console.error("CampusLoop sign out failed", error);
+      }
+    }
     currentUser = null;
     session = null;
     selectedConversationId = "";
-    localStorage.removeItem(STORAGE.session);
+    if (!cloudEnabled) localStorage.removeItem(STORAGE.session);
     renderAccount();
     showToast("已退出账号。");
   }
@@ -819,7 +918,7 @@
     }
   }
 
-  function handleItemSubmit(event) {
+  async function handleItemSubmit(event) {
     event.preventDefault();
     if (!currentUser) {
       closeModal(elements.itemModal);
@@ -856,8 +955,20 @@
       sellerName: currentUser.name,
       createdAt: new Date().toISOString()
     };
-    items.unshift(item);
-    saveItems();
+    try {
+      if (cloudEnabled) {
+        elements.itemMessage.textContent = "正在发布到云端…";
+        const savedItem = await cloud.createItem(item);
+        items.unshift(savedItem);
+      } else {
+        items.unshift(item);
+        saveItems();
+      }
+    } catch (error) {
+      console.error("CampusLoop item publish failed", error);
+      elements.itemMessage.textContent = "发布失败，请检查网络后重试。";
+      return;
+    }
     syncLocationFilters();
     renderItems();
     closeModal(elements.itemModal);
@@ -865,12 +976,19 @@
     window.location.hash = "market";
   }
 
-  function removeItem(itemId) {
+  async function removeItem(itemId) {
     const item = findItem(itemId);
     if (!item || item.sellerId !== currentUser?.id) return;
     if (!window.confirm(`确定要下架“${item.title}”吗？`)) return;
-    items = items.filter((entry) => entry.id !== itemId);
-    saveItems();
+    try {
+      if (cloudEnabled) await cloud.removeItem(itemId);
+      items = items.filter((entry) => entry.id !== itemId);
+      if (!cloudEnabled) saveItems();
+    } catch (error) {
+      console.error("CampusLoop item removal failed", error);
+      showToast("商品下架失败，请稍后重试。");
+      return;
+    }
     syncLocationFilters();
     renderItems();
     renderMessageCenter();
@@ -883,7 +1001,7 @@
       && conversation.participants.includes(sellerId));
   }
 
-  function contactSeller(itemId) {
+  async function contactSeller(itemId) {
     const item = findItem(itemId);
     if (!item) {
       showToast("这件商品已下架。");
@@ -898,6 +1016,17 @@
       return;
     }
     let conversation = conversationFor(item.id, currentUser.id, item.sellerId);
+    if (cloudEnabled) {
+      try {
+        const conversationId = await cloud.openConversation(item.id);
+        await refreshCloudData({ includeItems: false });
+        selectConversation(conversationId, true);
+      } catch (error) {
+        console.error("CampusLoop conversation creation failed", error);
+        showToast("暂时无法联系卖家，请稍后重试。");
+      }
+      return;
+    }
     if (!conversation) {
       conversation = {
         id: uid("conversation"),
@@ -942,7 +1071,14 @@
         changed = true;
       }
     });
-    if (changed) saveConversations();
+    if (changed) {
+      if (cloudEnabled) cloud.markRead(conversation.id, currentUser.id).catch((error) => console.error("CampusLoop read receipt failed", error));
+      else saveConversations();
+    }
+  }
+
+  function isMessageCenterActive() {
+    return window.location.hash === "#messages" && document.visibilityState === "visible";
   }
 
   function unreadCount() {
@@ -979,7 +1115,7 @@
       const preview = document.createElement("span");
       preview.textContent = lastMessage?.text || "还没有消息";
       button.append(strong, person, preview);
-      button.addEventListener("click", () => selectConversation(conversation.id));
+      button.addEventListener("click", () => selectConversation(conversation.id, true));
       elements.conversationItems.append(button);
     });
   }
@@ -1001,7 +1137,7 @@
       return;
     }
 
-    markConversationRead(conversation);
+    if (isMessageCenterActive()) markConversationRead(conversation);
     const item = findItem(conversation.itemId);
     const person = participantName(conversation);
     elements.chatAvatar.textContent = initials(person);
@@ -1022,6 +1158,14 @@
         text.textContent = message.text;
         const time = document.createElement("small");
         time.textContent = `${message.senderId === currentUser.id ? "我" : participantName(conversation)} · ${formatDate(message.createdAt)}`;
+        if (message.senderId === currentUser.id) {
+          const delivery = document.createElement("span");
+          const otherId = otherParticipant(conversation);
+          const read = message.readBy?.includes(otherId);
+          delivery.className = `message-delivery${read ? " read" : ""}`;
+          delivery.textContent = cloudEnabled ? (read ? "已读" : "已送达") : "仅本机";
+          time.append(delivery);
+        }
         bubble.append(text, time);
         elements.messageHistory.append(bubble);
       });
@@ -1042,7 +1186,7 @@
     }
     const list = conversationsForCurrentUser();
     if (selectedConversationId && !list.some((conversation) => conversation.id === selectedConversationId)) selectedConversationId = "";
-    if (!selectedConversationId && list.length) selectedConversationId = list[0].id;
+    if (!selectedConversationId && list.length && isMessageCenterActive()) selectedConversationId = list[0].id;
     renderConversationList(list);
     renderSelectedConversation();
     renderUnreadBadge();
@@ -1057,22 +1201,41 @@
     }
   }
 
-  function sendMessage(event) {
+  async function sendMessage(event) {
     event.preventDefault();
     const conversation = conversations.find((entry) => entry.id === selectedConversationId && entry.participants.includes(currentUser?.id));
     const text = elements.messageInput.value.trim();
     if (!conversation || !currentUser || !text) return;
-    conversation.messages.push({
+    const message = {
       id: uid("message"),
       senderId: currentUser.id,
       text,
       readBy: [currentUser.id],
       createdAt: new Date().toISOString()
-    });
+    };
+    conversation.messages.push(message);
     conversation.updatedAt = new Date().toISOString();
-    saveConversations();
     elements.messageInput.value = "";
     renderMessageCenter();
+    if (cloudEnabled) {
+      const submitButton = elements.messageForm.querySelector("button");
+      submitButton.disabled = true;
+      try {
+        await cloud.sendMessage(conversation.id, currentUser.id, text);
+        await refreshCloudData({ includeItems: false });
+      } catch (error) {
+        console.error("CampusLoop message send failed", error);
+        conversation.messages = conversation.messages.filter((entry) => entry.id !== message.id);
+        elements.messageInput.value = text;
+        renderMessageCenter();
+        showToast("消息发送失败，内容已保留，请重试。");
+      } finally {
+        submitButton.disabled = false;
+      }
+    } else {
+      saveConversations();
+      showToast("本地演示模式：消息未发送给其他用户。");
+    }
   }
 
   function clearFilters() {
@@ -1113,6 +1276,7 @@
     if (openModal) closeModal(openModal);
   });
   window.addEventListener("storage", () => {
+    if (cloudEnabled) return;
     users = safeLoad(STORAGE.users, []);
     items = safeLoad(STORAGE.items, []);
     conversations = safeLoad(STORAGE.conversations, []);
@@ -1121,7 +1285,35 @@
     syncLocationFilters();
     renderAccount();
   });
+  window.addEventListener("hashchange", renderMessageCenter);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") renderMessageCenter();
+  });
 
-  syncLocationFilters();
-  renderAccount();
+  async function initializeMarket() {
+    renderConnectionStatus();
+    if (cloudEnabled) {
+      try {
+        const result = await cloud.init();
+        currentUser = result.user;
+        mergeCloudUsers(result.user ? [result.user] : []);
+        await refreshCloudData();
+        realtimeUnsubscribe = cloud.subscribe(() => refreshCloudData({ includeItems: false }));
+      } catch (error) {
+        console.error("CampusLoop cloud initialization failed", error);
+        currentUser = null;
+        items = [];
+        conversations = [];
+        syncLocationFilters();
+        renderAccount();
+        showToast("云端连接失败，请检查市场配置。");
+      }
+      return;
+    }
+    syncLocationFilters();
+    renderAccount();
+  }
+
+  window.addEventListener("beforeunload", () => realtimeUnsubscribe?.());
+  initializeMarket();
 })();

@@ -7,6 +7,8 @@
     <meta name="description" content="CampusLoop 留学生二手市场：按国家、城市和地区浏览、发布并沟通二手商品。" />
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="market.css" />
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
+    <script src="icons.js" defer></script>
   </head>
   <body>
     <header class="market-topbar">
@@ -17,13 +19,13 @@
       </a>
       <nav class="market-nav" aria-label="二手市场导航">
         <a href="#market">逛二手</a>
-        <button id="headerPostButton" type="button">发布商品</button>
-        <a href="#messages">私信 <span class="unread-badge" id="unreadBadge" hidden>0</span></a>
+        <button id="headerPostButton" type="button"><i data-lucide="plus"></i><span>发布商品</span></button>
+        <a href="#messages"><i data-lucide="messages-square"></i><span>私信</span> <span class="unread-badge" id="unreadBadge" hidden>0</span></a>
       </nav>
       <div class="account-actions">
         <span id="accountLabel" hidden></span>
-        <button class="outline-button compact" id="authButton" type="button">登录 / 注册</button>
-        <button class="text-button" id="logoutButton" type="button" hidden>退出</button>
+        <button class="outline-button compact" id="authButton" type="button"><i data-lucide="log-in"></i><span>登录 / 注册</span></button>
+        <button class="text-button" id="logoutButton" type="button" hidden><i data-lucide="log-out"></i><span>退出</span></button>
       </div>
     </header>
 
@@ -40,7 +42,7 @@
         </div>
         <div class="hero-market-card" aria-hidden="true">
           <span class="hero-card-tag">附近好物</span>
-          <div class="hero-card-icon">♻</div>
+          <div class="hero-card-icon"><i data-lucide="recycle"></i></div>
           <strong>让闲置继续有用</strong>
           <small>浏览 · 发布 · 私信</small>
         </div>
@@ -117,7 +119,10 @@
             <p class="eyebrow">PRIVATE MESSAGES</p>
             <h2 id="messagesTitle">私信中心</h2>
           </div>
-          <p class="section-note">登录后查看与买家或卖家的商品沟通。</p>
+          <div class="message-section-meta">
+            <p class="section-note">登录后查看与买家或卖家的商品沟通。</p>
+            <span class="connection-status" id="connectionStatus"><i data-lucide="hard-drive"></i><span>正在检查消息连接</span></span>
+          </div>
         </div>
         <div class="message-login-note" id="messageLoginNote">
           <strong>登录后使用私信</strong>
@@ -270,6 +275,9 @@
     <script src="location-cities-4.js"></script>
     <script src="location-cities-5.js"></script>
     <script src="location-cities-6.js"></script>
+    <script src="market-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.55.0/dist/umd/supabase.min.js"></script>
+    <script src="market-cloud.js"></script>
     <script src="market.js"></script>
   </body>
 </html>

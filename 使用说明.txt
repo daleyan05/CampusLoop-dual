@@ -32,4 +32,24 @@ CampusLoop 使用说明
 
 4. 已登录用户可以下架自己发布的商品；其他用户只能联系卖家。市场内没有个人动态。
 
+真实账号与跨设备私信（Supabase）：
+
+1. 当前代码支持两种模式：
+   - market-config.js 未填写时为“本地演示模式”，数据只保存在当前浏览器，对方无法收到私信。
+   - 配置 Supabase 后为“实时消息已连接”，账号、商品、会话、消息和已读状态保存到云端。
+
+2. 在 Supabase 新建项目后，打开 SQL Editor，完整运行 supabase-market.sql。
+
+3. 打开 market-config.js，填写项目的 URL 与 Publishable key（旧项目可使用 anon public key）。不要填写 service_role key。
+
+4. 在 Supabase Authentication 的 URL Configuration 中，将正式 GitHub Pages 地址加入 Site URL 与 Redirect URLs。
+
+5. 建议保留邮箱验证。新用户注册后须先打开验证邮件，再返回市场登录。
+
+6. 使用两个不同邮箱、两个浏览器或一台电脑加一部手机进行验收：
+   - 账号 A 发布商品；
+   - 账号 B 点击“联系卖家”并发送消息；
+   - 账号 A 应实时看到新会话和未读提醒；
+   - 账号 A 打开会话后，账号 B 的消息状态应从“已送达”变为“已读”。
+
 如果页面已打开，请按 Command + Shift + R 强制刷新。

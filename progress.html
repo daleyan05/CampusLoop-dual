@@ -6,6 +6,8 @@
     <title>CampusLoop 辅导进度</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="dispatch.css?v=20260806-fees2" />
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
+    <script src="icons.js" defer></script>
   </head>
   <body>
     <header class="dispatch-topbar">
@@ -18,7 +20,7 @@
 
     <main class="dispatch-shell progress-shell">
       <section class="progress-access-panel" id="progressAccessDenied" hidden>
-        <span class="progress-lock" aria-hidden="true">🔒</span>
+        <span class="progress-lock" aria-hidden="true"><i data-lucide="lock-keyhole"></i></span>
         <p class="dispatch-eyebrow">Protected progress</p>
         <h1>暂时无法进入此进度页面</h1>
         <p id="progressAccessMessage"></p>

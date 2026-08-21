@@ -518,7 +518,7 @@ function approvedMentorCardMarkup(request) {
       </div>
       <p><strong>可辅导科目：</strong>${escapeDispatchHtml(mentor.subjects)}</p>
       <p>${escapeDispatchHtml(mentor.bio)}</p>
-      <span class="privacy-mask">名片不显示联系方式，预约后仍由店长中转</span>
+      <span class="privacy-mask"><i data-lucide="lock-keyhole"></i>名片不显示联系方式，预约后仍由店长中转</span>
       <div class="order-actions">${action}</div>
     </section>`;
 }
@@ -551,7 +551,7 @@ function renderStudentRequestCard(request) {
       ${feeSummaryMarkup(request, "student")}
       ${approvedMentorCardMarkup(request)}
       ${["accepted", "completed"].includes(request.status) ? tutoringProgressMarkup(request, "student") : ""}
-      <span class="privacy-mask">辅导员联系方式由店长保管</span>
+      <span class="privacy-mask"><i data-lucide="lock-keyhole"></i>辅导员联系方式由店长保管</span>
       <small>提交时间：${formatDispatchTime(request.createdAt)}</small>
     </article>`;
 }
@@ -571,7 +571,7 @@ function studentMentorBookingCardMarkup(mentor, requests) {
       <p>${escapeDispatchHtml(mentor.bio)}</p>
       <div class="mentor-availability"><strong>可预约时间</strong><span>${escapeDispatchHtml(mentor.availability || "请向店长确认具体时间")}</span></div>
       <span class="booking-load">当前预约：${activeBookings} 单处理中</span>
-      <span class="privacy-mask">申请时不公开双方联系方式</span>
+      <span class="privacy-mask"><i data-lucide="lock-keyhole"></i>申请时不公开双方联系方式</span>
       <button class="dispatch-primary" type="button" data-request-mentor="${escapeDispatchHtml(mentor.id)}">申请预约辅导员</button>
     </article>`;
 }
@@ -901,7 +901,7 @@ function mentorOrderMarkup(request, mentor, mode) {
       ${feeSummaryMarkup(request, "mentor")}
       ${request.preferredMentorId === mentor?.id ? '<span class="preferred-mentor-line">学员向你发起预约申请</span>' : ""}
       <p class="order-description">${escapeDispatchHtml(request.description)}</p>
-      <div class="order-card-top"><span class="matching-score">与你的资料匹配度 ${score}%</span><span class="privacy-mask">学员联系方式不可见</span></div>
+      <div class="order-card-top"><span class="matching-score">与你的资料匹配度 ${score}%</span><span class="privacy-mask"><i data-lucide="lock-keyhole"></i>学员联系方式不可见</span></div>
       <div class="order-actions">${action}</div>
       ${mentor && mode === "assignment" && ["accepted", "completed"].includes(request.status) ? tutoringProgressMarkup(request, "mentor") : ""}
     </article>`;
@@ -1404,7 +1404,7 @@ function managerRequestMarkup(request, studentContacts, mentorContacts) {
             ${completionAction}
             ${request.status === "completed" ? `<button class="dispatch-secondary" type="button" data-reopen-request="${escapeDispatchHtml(request.id)}">重新打开</button>` : ""}
           </div>
-          <span class="privacy-mask">审核通过后学员只看到辅导员名片，不显示联系方式</span>
+          <span class="privacy-mask"><i data-lucide="lock-keyhole"></i>审核通过后学员只看到辅导员名片，不显示联系方式</span>
         </div>
       </div>
     </article>`;
