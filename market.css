@@ -12,6 +12,9 @@
   --shadow: 0 16px 44px rgba(27, 36, 48, 0.09);
 }
 
+.messages-section, .market-nav a[href="#messages"] { display: none !important; }
+.item-actions .primary-button { display: none !important; }
+
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { scroll-behavior: smooth; scroll-padding-top: 84px; }

@@ -3,6 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Keep the legacy URL as a compatibility entry point. The unified app
+      // owns market data now, so two separate pages cannot drift apart.
+      (function redirectLegacyMarket() {
+        var target = new URL("index.html", window.location.href);
+        target.search = window.location.search;
+        target.hash = "market";
+        window.location.replace(target.href);
+      }());
+    </script>
     <title>CampusLoop 二手市场</title>
     <meta name="description" content="CampusLoop 留学生二手市场：按国家、城市和地区浏览、发布并沟通二手商品。" />
     <link rel="icon" href="data:," />
@@ -34,7 +44,7 @@
         <div>
           <p class="eyebrow">SECONDHAND MARKET</p>
           <h1>留学生二手市场</h1>
-          <p>按国家、城市和地区寻找教材、家具与生活用品。一个入口，登录后既可以发布商品，也可以联系卖家。</p>
+          <p>按国家、城市和地区寻找教材、家具与生活用品。登录后可以发布商品并创建交易订单。</p>
           <div class="hero-actions">
             <a class="primary-button" href="#market">开始逛二手</a>
             <button class="secondary-button" id="heroPostButton" type="button">发布二手商品</button>
@@ -44,7 +54,7 @@
           <span class="hero-card-tag">附近好物</span>
           <div class="hero-card-icon"><i data-lucide="recycle"></i></div>
           <strong>让闲置继续有用</strong>
-          <small>浏览 · 发布 · 私信</small>
+          <small>浏览 · 发布 · 交易</small>
         </div>
       </section>
 
@@ -162,7 +172,7 @@
         <button class="modal-close" data-close-modal="authModal" type="button" aria-label="关闭">×</button>
         <p class="eyebrow">ACCOUNT</p>
         <h2 id="authTitle">登录二手市场</h2>
-        <p class="modal-intro">一个普通账号即可浏览、买卖和私信，不区分不同版本。</p>
+        <p class="modal-intro">一个普通账号即可浏览和买卖商品，不区分不同版本。</p>
         <div class="auth-tabs" role="tablist" aria-label="账号入口">
           <button class="auth-tab active" type="button" data-auth-mode="login" role="tab" aria-selected="true">登录</button>
           <button class="auth-tab" type="button" data-auth-mode="register" role="tab" aria-selected="false">注册</button>
@@ -275,9 +285,9 @@
     <script src="location-cities-4.js"></script>
     <script src="location-cities-5.js"></script>
     <script src="location-cities-6.js"></script>
-    <script src="market-config.js"></script>
+    <script src="market-config.js?v=20260824-4-local-gate"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.55.0/dist/umd/supabase.min.js"></script>
-    <script src="market-cloud.js"></script>
-    <script src="market.js"></script>
+    <script src="market-cloud.js?v=20260824-2-singleton"></script>
+    <script src="market.js?v=20260824-1"></script>
   </body>
 </html>

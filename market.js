@@ -2,7 +2,13 @@
   "use strict";
 
   const cloud = globalThis.CampusLoopMarketCloud;
-  const cloudEnabled = Boolean(cloud?.configured);
+  // A public Supabase config is not proof that the v2 schema is deployed.
+  // Start in the local mode and switch only after cloud.init() reports a
+  // usable schema. This keeps the site usable while a staging project is
+  // being migrated and prevents an empty market when the probe gets 404.
+  const cloudConfigured = Boolean(cloud?.configured);
+  let cloudEnabled = false;
+  const privateMessagingEnabled = false;
 
   const STORAGE = {
     users: "campusLoopMarketUsersV2",
@@ -227,13 +233,11 @@
     ]);
   }
 
-  if (!cloudEnabled) {
-    migrateLegacyData();
-    seedItems();
-  }
+  migrateLegacyData();
+  seedItems();
 
-  let users = cloudEnabled ? [] : safeLoad(STORAGE.users, []);
-  let items = cloudEnabled ? [] : safeLoad(STORAGE.items, []);
+  let users = safeLoad(STORAGE.users, []);
+  let items = safeLoad(STORAGE.items, []);
   const demoCityById = {
     "demo-item-desk": "London",
     "demo-item-book": "Manchester",
@@ -250,9 +254,9 @@
     return { ...item, city };
   });
   if (demoLocationsChanged) save(STORAGE.items, items);
-  let conversations = cloudEnabled ? [] : safeLoad(STORAGE.conversations, []);
-  let session = cloudEnabled ? null : safeLoad(STORAGE.session, null);
-  let currentUser = cloudEnabled ? null : users.find((user) => user.id === session?.userId) || null;
+  let conversations = safeLoad(STORAGE.conversations, []);
+  let session = safeLoad(STORAGE.session, null);
+  let currentUser = users.find((user) => user.id === session?.userId) || null;
   let authMode = "login";
   let pendingAction = null;
   let selectedConversationId = "";
@@ -397,6 +401,32 @@
 
   function saveItems() {
     save(STORAGE.items, items);
+  }
+
+  // Transitional bridge for the two static frontends. Once the v2 admin
+  // queries are deployed, this mirror is only a local notification fallback;
+  // it lets the admin page see a newly submitted listing in another tab on
+  // the same origin instead of silently losing the review queue.
+  function mirrorListingForAdmin(item) {
+    if (!item?.id) return;
+    try {
+      const existing = safeLoad("campusLoopPublishedItems", []);
+      const list = Array.isArray(existing) ? existing : [];
+      const image = String(item.image || "");
+      const mirrored = {
+        ...item,
+        id: String(item.id),
+        reviewRequired: true,
+        reviewStatus: "pending",
+        source: "market-page",
+        image: image.length <= 900000 ? image : ""
+      };
+      const next = [mirrored, ...list.filter((entry) => String(entry?.id) !== String(item.id))].slice(0, 200);
+      localStorage.setItem("campusLoopPublishedItems", JSON.stringify(next));
+      localStorage.setItem("campusLoopAdminInboxVersion", String(Date.now()));
+    } catch (error) {
+      console.warn("CampusLoop admin local mirror unavailable", error);
+    }
   }
 
   function saveConversations() {
@@ -960,9 +990,11 @@
         elements.itemMessage.textContent = "正在发布到云端…";
         const savedItem = await cloud.createItem(item);
         items.unshift(savedItem);
+        mirrorListingForAdmin(savedItem);
       } else {
         items.unshift(item);
         saveItems();
+        mirrorListingForAdmin(item);
       }
     } catch (error) {
       console.error("CampusLoop item publish failed", error);
@@ -1002,6 +1034,10 @@
   }
 
   async function contactSeller(itemId) {
+    if (!privateMessagingEnabled) {
+      showToast("私信功能暂时关闭，请通过商品订单继续交易。");
+      return;
+    }
     const item = findItem(itemId);
     if (!item) {
       showToast("这件商品已下架。");
@@ -1203,6 +1239,10 @@
 
   async function sendMessage(event) {
     event.preventDefault();
+    if (!privateMessagingEnabled) {
+      showToast("私信功能暂时关闭。");
+      return;
+    }
     const conversation = conversations.find((entry) => entry.id === selectedConversationId && entry.participants.includes(currentUser?.id));
     const text = elements.messageInput.value.trim();
     if (!conversation || !currentUser || !text) return;
@@ -1292,23 +1332,31 @@
 
   async function initializeMarket() {
     renderConnectionStatus();
-    if (cloudEnabled) {
+    if (cloudConfigured) {
       try {
         const result = await cloud.init();
-        currentUser = result.user;
-        mergeCloudUsers(result.user ? [result.user] : []);
-        await refreshCloudData();
-        realtimeUnsubscribe = cloud.subscribe(() => refreshCloudData({ includeItems: false }));
+        if (result.mode === "v2" || result.mode === "legacy") {
+          cloudEnabled = true;
+          currentUser = result.user;
+          users = result.user ? [result.user] : [];
+          items = [];
+          conversations = [];
+          mergeCloudUsers(result.user ? [result.user] : []);
+          renderConnectionStatus();
+          await refreshCloudData();
+          realtimeUnsubscribe = cloud.subscribe(() => refreshCloudData({ includeItems: false }));
+        } else {
+          // Keep the local data path active until the remote schema is ready.
+          // The status badge tells the operator why this is not realtime yet.
+          cloudEnabled = false;
+          renderConnectionStatus();
+        }
       } catch (error) {
         console.error("CampusLoop cloud initialization failed", error);
-        currentUser = null;
-        items = [];
-        conversations = [];
-        syncLocationFilters();
-        renderAccount();
-        showToast("云端连接失败，请检查市场配置。");
+        cloudEnabled = false;
+        renderConnectionStatus();
+        showToast("云端尚未就绪，当前使用本地数据。");
       }
-      return;
     }
     syncLocationFilters();
     renderAccount();

@@ -1,0 +1,13 @@
+# Local Supabase CLI metadata
+supabase/.temp/
+
+# Local runtime output
+.DS_Store
+*.log
+
+# Local secrets and environment files
+.env
+.env.*
+!.env.example
+supabase/.env
+supabase/.env.local

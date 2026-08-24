@@ -3,120 +3,118 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CampusLoop 入口中心</title>
+    <meta name="theme-color" content="#f7f7f4" />
+    <title>CampusLoop | 留学生校园生活</title>
     <link rel="icon" href="data:," />
-      <style>
-      :root { color-scheme: light; --ink:#1b2430; --muted:#657084; --line:#d9e0e8; --paper:#f7f8f5; --white:#fff; --green:#2f7d68; --blue:#315f87; --purple:#7a4b8d; --coral:#c75c3b; }
-      * { box-sizing:border-box; }
-      html { scroll-behavior:smooth; }
-      body { margin:0; min-height:100vh; padding:24px clamp(18px,5vw,68px) 48px; background:var(--paper); color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
-      a { color:inherit; }
-      .skip-link { position:absolute; left:-999px; top:10px; z-index:10; padding:10px 14px; border-radius:8px; background:var(--ink); color:var(--white); font-weight:800; }
-      .skip-link:focus { left:18px; }
-      main { width:min(1120px,100%); margin:0 auto; }
-      .portal-header { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:clamp(44px,8vw,86px); }
-      .brand { display:flex; align-items:center; gap:11px; font-weight:900; }
-      .mark { display:grid; width:42px; height:42px; place-items:center; border-radius:10px; background:var(--ink); color:var(--white); letter-spacing:-.04em; }
-      .portal-meta { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; font-weight:800; }
-      .portal-meta span { padding:7px 10px; border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.72); }
-      .eyebrow { margin:0 0 12px; color:#b45f46; font-size:12px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
-      .hero { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(260px,.65fr); align-items:end; gap:clamp(28px,7vw,88px); }
-      h1 { max-width:760px; margin:0; font-size:clamp(46px,6.4vw,78px); line-height:1.02; letter-spacing:-.045em; }
-      .intro { max-width:700px; margin:22px 0 0; color:var(--muted); font-size:clamp(16px,1.8vw,19px); line-height:1.7; }
-      .hero-aside { display:grid; gap:12px; padding:20px; border:1px solid var(--line); border-radius:12px; background:var(--white); box-shadow:0 16px 40px rgba(32,42,54,.07); }
-      .hero-aside strong { font-size:16px; }
-      .hero-aside p { margin:0; color:var(--muted); font-size:13px; line-height:1.6; }
-      .hero-aside dl { display:grid; grid-template-columns:1fr auto; gap:9px 14px; margin:4px 0 0; font-size:13px; }
-      .hero-aside dt { color:var(--muted); }
-      .hero-aside dd { margin:0; font-weight:900; }
-      .section-title { display:flex; align-items:end; justify-content:space-between; gap:14px; margin:clamp(48px,8vw,88px) 0 16px; }
-      .section-title h2 { margin:0; font-size:clamp(26px,3vw,34px); letter-spacing:-.03em; }
-      .section-title span { color:var(--muted); font-size:13px; }
-      .entries { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
-      .entry { display:grid; gap:14px; min-height:242px; padding:24px; border:1px solid var(--line); border-top:5px solid var(--line); border-radius:12px; background:var(--white); box-shadow:0 14px 38px rgba(32,42,54,.07); transition:transform .2s ease, box-shadow .2s ease; }
-      .entry:hover { transform:translateY(-3px); box-shadow:0 20px 46px rgba(32,42,54,.12); }
-      .entry.student { border-top-color:var(--green); }
-      .entry.mentor { border-top-color:var(--blue); }
-      .entry.manager { border-top-color:var(--purple); }
-      .entry.market { border-top-color:var(--coral); }
-      .entry-kicker { margin:0; color:var(--muted); font-size:11px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
-      .entry h2 { margin:0; font-size:clamp(24px,3vw,30px); letter-spacing:-.03em; }
-      .entry p { margin:0; color:var(--muted); font-size:15px; line-height:1.65; }
-      .entry a { align-self:end; display:inline-flex; min-height:44px; align-items:center; justify-content:center; gap:8px; border-radius:8px; color:var(--white); text-decoration:none; font-size:14px; font-weight:900; transition:filter .2s ease, transform .2s ease; }
-      .entry a:hover { filter:brightness(.94); }
-      .entry a:focus-visible, .portal-meta a:focus-visible { outline:3px solid rgba(49,95,135,.35); outline-offset:3px; }
-      .student a { background:var(--green); }
-      .mentor a { background:var(--blue); }
-      .manager a { background:var(--purple); }
-      .market a { background:var(--coral); }
-      @media (max-width:900px) { .hero { grid-template-columns:1fr; } .hero-aside { max-width:560px; } .entries { grid-template-columns:1fr; } }
-      @media (max-width:680px) { body { padding-top:18px; } .portal-header { align-items:flex-start; margin-bottom:52px; } .portal-meta span { display:none; } .section-title { align-items:flex-start; flex-direction:column; gap:6px; } .entry { min-height:0; } }
-      @media (prefers-reduced-motion:reduce) { *, *::before, *::after { scroll-behavior:auto !important; transition-duration:0.01ms !important; } }
-      .lucide { width:20px; height:20px; stroke-width:2; }
-      .entry-icon { display:grid; width:42px; height:42px; place-items:center; border-radius:11px; background:color-mix(in srgb,var(--entry-color),#fff 86%); color:var(--entry-color); }
-      .entry-icon .lucide { width:21px; height:21px; }
-      .entry-topline { display:flex; align-items:center; justify-content:space-between; gap:14px; }
-      .entry.manager { --entry-color:var(--purple); }
-      .entry.mentor { --entry-color:var(--blue); }
-      .entry.student { --entry-color:var(--green); }
-      .entry.market { --entry-color:var(--coral); }
-      .entry a .lucide { width:17px; height:17px; }
-      .portal-status { display:inline-flex; align-items:center; gap:6px; }
-      .portal-status .lucide { width:14px; height:14px; color:var(--green); }
-    </style>
-  </head>
-  <body>
-    <a class="skip-link" href="#portals">跳到入口列表</a>
-    <main>
-      <header class="portal-header">
-        <div class="brand"><span class="mark" aria-hidden="true">CL</span><span>CampusLoop</span></div>
-        <div class="portal-meta" aria-label="平台状态"><span class="portal-status"><i data-lucide="sparkles"></i>学生服务 · 二手交易</span><span>静态演示版</span></div>
-      </header>
-      <section class="hero" aria-labelledby="pageTitle">
-        <div>
-          <p class="eyebrow">Private dispatch platform</p>
-          <h1 id="pageTitle">CampusLoop 入口中心</h1>
-          <p class="intro">论文辅导采用平台派单制并保留三个独立入口；二手买卖使用一个统一市场入口，不区分不同版本。</p>
-        </div>
-        <aside class="hero-aside" aria-label="平台概览">
-          <strong>先选择你的使用场景</strong>
-          <p>每个入口都有独立的页面和权限，登录后只会看到当前角色需要的功能。</p>
-          <dl>
-            <dt>论文辅导</dt><dd>3 个入口</dd>
-            <dt>二手市场</dt><dd>1 个入口</dd>
-          </dl>
-        </aside>
-      </section>
-      <div class="section-title" id="portals"><h2>选择入口</h2><span>论文辅导三端 · 二手市场一个入口</span></div>
-      <div class="entries" aria-label="CampusLoop 功能入口">
-        <article class="entry manager">
-          <div class="entry-topline"><span class="entry-icon"><i data-lucide="shield-check"></i></span><p class="entry-kicker">平台管理</p></div>
-          <h2>店长派单端</h2>
-          <p>密码保护的唯一店长账号。查看双方联系方式，审核辅导员抢单结果，统一派单与中转沟通。</p>
-          <a href="manager.html" aria-label="进入店长派单端">进入店长派单端<i data-lucide="arrow-up-right"></i></a>
-        </article>
-        <article class="entry mentor">
-          <div class="entry-topline"><span class="entry-icon"><i data-lucide="graduation-cap"></i></span><p class="entry-kicker">Tutor portal</p></div>
-          <h2>辅导员端</h2>
-          <p>先注册并完成实名认证，再登记专业、科目和地区抢单；抢单后须经店长审核。</p>
-          <a href="mentor.html" aria-label="进入辅导员端">进入辅导员端<i data-lucide="arrow-up-right"></i></a>
-        </article>
-        <article class="entry student">
-          <div class="entry-topline"><span class="entry-icon"><i data-lucide="book-open-check"></i></span><p class="entry-kicker">Student portal</p></div>
-          <h2>找辅导端</h2>
-          <p>细化填写专业、具体科目、地区、预算与截止日期，发布到辅导员抢单大厅。</p>
-          <a href="student.html" aria-label="进入找辅导端">进入找辅导端<i data-lucide="arrow-up-right"></i></a>
-        </article>
-        <article class="entry market">
-          <div class="entry-topline"><span class="entry-icon"><i data-lucide="shopping-bag"></i></span><p class="entry-kicker">Marketplace</p></div>
-          <h2>二手市场</h2>
-          <p>按国家、城市和地区浏览或发布二手商品，登录后既可以买也可以卖，并通过私信沟通。</p>
-          <a href="market.html" aria-label="进入二手市场">进入二手市场<i data-lucide="arrow-up-right"></i></a>
-        </article>
-      </div>
-    </main>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="app.css?v=20260822-9" />
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
     <script src="icons.js" defer></script>
-    <script src="i18n.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="side-rail" aria-label="主导航">
+        <a class="brand-lockup" href="#home" data-view-link="home">
+          <span class="brand-mark">CL</span>
+          <span><strong>CampusLoop</strong><small>student life, in loop</small></span>
+        </a>
+        <div class="rail-location" id="railLocationButton" role="button" tabindex="0">
+          <i data-lucide="map-pin"></i><span><small>浏览地区</small><strong id="railLocation">地址未选择</strong></span><i data-lucide="chevrons-up-down"></i>
+        </div>
+        <nav class="primary-nav">
+          <button class="nav-item active" data-view="home" type="button"><i data-lucide="layout-grid"></i><span>首页</span></button>
+          <button class="nav-item" data-view="market" type="button"><i data-lucide="shopping-bag"></i><span>二手市场</span><em>12</em></button>
+          <button class="nav-item" data-view="tutoring" type="button"><i data-lucide="graduation-cap"></i><span>找辅导（作业完善）</span></button>
+          <button class="nav-item" data-view="settings" type="button"><i data-lucide="settings-2"></i><span>设置</span></button>
+        </nav>
+        <div class="rail-spacer"></div>
+        <a class="admin-entry" href="admin.html"><span class="admin-symbol"><i data-lucide="shield-check"></i></span><span><strong>管理后台</strong><small>运营工作台</small></span><i data-lucide="arrow-up-right"></i></a>
+        <div class="rail-user" id="railUser" hidden>
+          <span class="avatar avatar-coral">L</span><span><strong id="railUserName">Lena</strong><small>普通用户</small></span><button type="button" id="railLogout" title="退出登录"><i data-lucide="log-out"></i></button>
+        </div>
+      </aside>
+
+      <div class="app-main">
+        <header class="topbar">
+          <div class="mobile-brand"><span class="brand-mark">CL</span><strong>CampusLoop</strong></div>
+          <button class="top-location is-empty" id="topLocationButton" type="button"><i data-lucide="map-pin"></i><span id="topLocation">地址未选择</span><i data-lucide="chevron-down"></i></button>
+          <label class="global-search"><i data-lucide="search"></i><input id="globalSearch" type="search" placeholder="搜索商品或辅导科目" /><kbd>/</kbd></label>
+          <div class="top-actions">
+            <button class="icon-button" type="button" title="通知"><i data-lucide="bell"></i><span class="notification-dot"></span></button>
+            <button class="profile-button" id="profileButton" type="button"><span class="avatar avatar-ink">G</span><span class="profile-name">游客</span><i data-lucide="chevron-down"></i></button>
+          </div>
+        </header>
+
+        <main class="content-area">
+          <section class="view-panel active" id="homeView" data-view-panel="home">
+            <div class="page-intro home-intro">
+              <div><p class="section-kicker">THURSDAY, 21 AUGUST</p><h1>你好，今天想<br /><span>在校园里发现什么？</span></h1><p class="intro-copy">把生活里的交换、帮助和灵感，放在一个顺手的地方。</p></div>
+              <div class="intro-stats"><div><strong>248</strong><span>本地好物</span></div><div><strong>36</strong><span>待抢需求</span></div><div><strong>98%</strong><span>响应率</span></div></div>
+            </div>
+            <div class="quick-actions">
+              <button class="quick-card quick-market" type="button" data-view-target="market"><span class="quick-icon"><i data-lucide="shopping-bag"></i></span><span><strong>逛二手市场</strong><small>从附近开始淘好物</small></span><i class="quick-arrow" data-lucide="arrow-up-right"></i></button>
+              <button class="quick-card quick-tutor" type="button" data-view-target="tutoring"><span class="quick-icon"><i data-lucide="sparkles"></i></span><span><strong>发布辅导需求</strong><small>把问题交给合适的人</small></span><i class="quick-arrow" data-lucide="arrow-up-right"></i></button>
+            </div>
+            <div class="section-block">
+              <div class="section-heading"><div><p class="section-kicker">NEARBY FINDS</p><h2>你附近的好物</h2></div><button class="link-button" type="button" data-view-target="market">查看全部<i data-lucide="arrow-right"></i></button></div>
+              <div class="home-item-grid" id="homeItemGrid"></div>
+            </div>
+            <div class="home-columns">
+              <div class="section-block compact-block"><div class="section-heading"><div><p class="section-kicker">YOUR LOOP</p><h2>正在进行</h2></div><button class="icon-button soft" title="刷新"><i data-lucide="refresh-cw"></i></button></div><div class="order-preview"><div class="order-icon"><i data-lucide="book-open-check"></i></div><div><strong>Academic writing support</strong><span>管理员正在审核你的需求</span><div class="progress-track"><span style="width:42%"></span></div></div><b>42%</b></div></div>
+              <div class="section-block compact-block"><div class="section-heading"><div><p class="section-kicker">UPDATES</p><h2>平台提醒</h2></div><button class="icon-button soft" title="刷新提醒"><i data-lucide="refresh-cw"></i></button></div><div class="mini-message"><span class="avatar avatar-lilac">A</span><div><strong>辅导订单</strong><span>你的需求已进入匹配队列</span></div><time>1h</time></div><div class="mini-message"><span class="avatar avatar-mint">CL</span><div><strong>平台服务</strong><span>登录后将自动使用账户默认地址</span></div><time>今天</time></div></div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="marketView" data-view-panel="market">
+            <div class="page-heading"><div><p class="section-kicker">LOCAL MARKET</p><h1>二手市场</h1><p>在你所在的城市，找到下一件值得带走的东西。</p></div><button class="primary-button" id="openPostButton" type="button"><i data-lucide="plus"></i>发布商品</button></div>
+            <div class="market-toolbar"><div class="location-filter is-empty" id="marketLocationButton" role="button" tabindex="0"><i data-lucide="map-pin"></i><span>地址未选择</span><i data-lucide="chevron-down"></i></div><div class="category-tabs" role="tablist"><button class="category-tab active" data-category="all" type="button">全部</button><button class="category-tab" data-category="教材书籍" type="button">教材书籍</button><button class="category-tab" data-category="家具家居" type="button">家具家居</button><button class="category-tab" data-category="数码电器" type="button">数码电器</button><button class="category-tab" data-category="生活用品" type="button">生活用品</button></div><button class="filter-button" type="button" id="marketFilterButton"><i data-lucide="sliders-horizontal"></i>筛选</button></div>
+            <div class="market-content"><aside class="filter-panel" id="filterPanel"><div class="filter-panel-head"><strong>筛选</strong><button class="text-button" id="clearMarketFilters" type="button">清除</button></div><label>关键词<input id="marketSearch" type="search" placeholder="书桌、台灯、教材" /></label><label>排序<select id="marketSort"><option value="newest">最新发布</option><option value="priceAsc">价格从低到高</option><option value="priceDesc">价格从高到低</option></select></label><label><span id="marketPriceRangeLabel">价格范围（选择地区后显示）</span><div class="price-fields"><input id="minPrice" type="number" placeholder="最低" disabled /><span>—</span><input id="maxPrice" type="number" placeholder="最高" disabled /></div></label><div class="filter-tip"><i data-lucide="info"></i><span>选择浏览地区后显示当地币种，商品保留发布时的原币种。</span></div></aside><div class="market-results"><div class="results-header"><span id="marketCount">地址未选择 · 0 件商品</span><div class="view-switch"><button class="active" type="button" title="网格视图"><i data-lucide="grid-2x2"></i></button><button type="button" title="列表视图"><i data-lucide="list"></i></button></div></div><div class="item-grid" id="itemGrid"></div></div></div>
+          </section>
+
+          <section class="view-panel" id="tutoringView" data-view-panel="tutoring">
+            <div class="page-heading"><div><p class="section-kicker">LEARNING LOOP</p><h1>找辅导</h1><p>把你的需求交给平台，等待合适的辅导员响应。</p></div><div class="mode-switch" role="tablist"><button class="active" data-tutor-mode="student" type="button">我是学生</button><button data-tutor-mode="mentor" type="button">我是辅导员</button></div></div>
+            <div class="tutor-student-layout" id="studentTutorPanel"><form class="surface-card request-form" id="requestForm"><div class="card-heading"><div><p class="section-kicker">NEW REQUEST</p><h2>发布辅导需求</h2></div><span class="status-dot"><i></i>管理员可见完整资料</span></div><div class="form-grid"><label>科目<input required name="subject" placeholder="例如：Academic Writing" /></label><label>专业<input required name="major" placeholder="例如：Business Analytics" /></label><label>需求类型<select name="type"><option>论文结构梳理</option><option>作业辅导</option><option>语言润色</option><option>课程答疑</option></select></label><label>截止时间<input required name="deadline" type="date" /></label><label>预算（每小时）<input required name="budget" type="number" placeholder="例如：80" /></label><label>国家 / 城市<input required name="city" value="Kuala Lumpur" /></label></div><label class="full-label">作业要求<textarea required name="brief" rows="4" placeholder="描述课程、作业要求和你希望获得的帮助"></textarea></label><label class="upload-zone"><input type="file" multiple /><i data-lucide="upload-cloud"></i><span><strong>添加文件</strong><small>文档、PDF、图片、音视频或压缩包，单个不超过 100MB</small></span></label><p class="form-hint"><i data-lucide="info"></i>只需提交作业要求，不需要上传全部内容。</p><button class="primary-button form-submit" type="submit">发布需求<i data-lucide="arrow-up-right"></i></button></form><div class="surface-card request-side"><div class="card-heading"><div><p class="section-kicker">MY REQUESTS</p><h2>我的进度</h2></div><button class="icon-button soft" title="刷新"><i data-lucide="refresh-cw"></i></button></div><div class="timeline"><div class="timeline-step done"><span><i data-lucide="check"></i></span><div><strong>已提交</strong><small>今天 09:32</small></div></div><div class="timeline-step current"><span><i data-lucide="clock-3"></i></span><div><strong>管理员审核中</strong><small>通常在 24 小时内完成</small></div></div><div class="timeline-step"><span><i data-lucide="users"></i></span><div><strong>等待辅导员抢单</strong><small>匹配后会通知你</small></div></div><div class="timeline-step"><span><i data-lucide="flag"></i></span><div><strong>完成辅导</strong><small>文件审核后交付</small></div></div></div></div></div>
+            <div class="tutor-mentor-layout" id="mentorTutorPanel" hidden><div class="surface-card mentor-hero-card"><div><p class="section-kicker">MENTOR DESK</p><h2>把经验，变成一段有价值的帮助。</h2><p>浏览匿名需求，选择你真正擅长的方向。管理员确认后，你会与学生进入专属订单。</p><div class="mentor-account"><span class="avatar avatar-mint" id="mentorAccountAvatar">L</span><span><small>当前辅导员账号</small><strong id="mentorAccountName">未登录</strong></span><button class="secondary-button small" id="mentorLogoutButton" type="button"><i data-lucide="log-out"></i>退出</button></div></div><div class="mentor-stat"><strong>00</strong><span>适合你的需求</span></div></div><div class="request-list" id="mentorRequestList"></div></div>
+          </section>
+
+          <section class="view-panel" id="messagesView" data-view-panel="messages">
+            <div class="page-heading"><div><p class="section-kicker">ORDER MESSAGES</p><h1>订单消息</h1><p>普通二手商品不开放私信；只有管理员确认后的辅导订单才会开启双方沟通。</p></div><span class="connection-badge local" id="appConnectionStatus"><i data-lucide="hard-drive"></i>等待云端连接</span></div><div class="chat-layout"><aside class="chat-list"><div class="chat-search"><i data-lucide="search"></i><input type="search" placeholder="搜索订单会话" disabled /></div><div class="chat-empty-state"><i data-lucide="shield-check"></i><strong>暂无可用订单会话</strong><span>管理员确认匹配后，会在这里显示辅导订单。</span></div></aside><div class="chat-room"><div class="chat-room-head"><span class="avatar avatar-lilac" id="chatRoomAvatar">CL</span><div><strong id="chatRoomTitle">订单沟通</strong><small id="chatRoomMeta">仅限已确认的辅导订单</small></div></div><div class="chat-messages" id="chatMessages"><div class="chat-empty-state"><i data-lucide="message-square-off"></i><strong>普通私信已关闭</strong><span>商品交易请先创建订单；辅导沟通会在管理员确认后开放。</span></div></div><form class="chat-composer" id="chatComposer"><textarea id="chatInput" rows="1" placeholder="当前没有可发送的订单会话" disabled></textarea><button class="send-button" type="submit" title="发送" disabled><i data-lucide="send"></i></button><span class="composer-status" id="composerStatus"><i data-lucide="hard-drive"></i>未连接云端，消息不会发送</span></form></div></div>
+          </section>
+
+          <section class="view-panel" id="productView" data-view-panel="product">
+            <button class="back-button" type="button" data-view-target="market"><i data-lucide="arrow-left"></i>返回二手市场</button>
+            <div class="product-detail-layout"><div class="product-gallery"><button class="product-image-trigger" id="productImageTrigger" type="button" aria-label="放大查看商品图片" aria-haspopup="dialog" aria-controls="productImageModal" title="放大查看商品图片"><img id="productImage" src="" alt="" /><span class="product-image-fallback"><i data-lucide="image-off"></i><strong>图片暂时无法加载</strong></span><span class="product-zoom-hint" aria-hidden="true"><i data-lucide="maximize-2"></i></span></button><span class="product-gallery-label"><i data-lucide="image"></i>商品图片</span></div><div class="product-info"><div class="product-info-top"><span class="category-chip" id="productCategory">生活用品</span><span class="verified-badge"><i data-lucide="badge-check"></i>卖家已实名</span></div><p class="section-kicker">ITEM DETAIL</p><h1 id="productTitle">IKEA 台灯 · 几乎全新</h1><strong class="product-price" id="productPrice">RM 35</strong><p class="product-description" id="productDescription">暖光护眼，带原包装，适合宿舍书桌。</p><div class="product-meta-list"><div><i data-lucide="map-pin"></i><span><small>所在位置</small><strong id="productLocation">Kuala Lumpur</strong></span></div><div><i data-lucide="clock-3"></i><span><small>发布时间</small><strong id="productAge">2 小时前</strong></span></div><div><span class="avatar avatar-mint" id="productSellerAvatar">M</span><span><small>卖家</small><strong id="productSeller">Maya · 已实名</strong></span></div></div><div class="product-actions"><button class="primary-button" id="productOrderButton" type="button"><i data-lucide="file-plus-2"></i>创建交易订单</button><button class="secondary-button" id="productFavoriteButton" type="button"><i data-lucide="heart"></i>收藏</button></div><div class="product-note"><i data-lucide="shield-check"></i><span>交易前需要完成实名认证。商品实际交收由双方线下确认。</span></div></div></div>
+          </section>
+
+          <section class="view-panel" id="settingsView" data-view-panel="settings">
+            <div class="page-heading"><div><p class="section-kicker">YOUR ACCOUNT</p><h1>设置</h1><p>管理你的资料、地址和隐私偏好。</p></div><span class="verified-badge" id="headerIdentityStatus"><i data-lucide="shield-check"></i>未完成实名认证</span></div><div class="settings-layout"><aside class="settings-nav"><button class="active" data-settings-target="profile" type="button"><i data-lucide="user-round"></i>个人信息</button><button data-settings-target="addresses" type="button"><i data-lucide="map-pin"></i>地址簿</button><button data-settings-target="identity" type="button"><i data-lucide="badge-check"></i>实名认证</button><button data-settings-target="security" type="button"><i data-lucide="lock-keyhole"></i>账号安全</button><button data-settings-target="notifications" type="button"><i data-lucide="bell-ring"></i>消息与隐私</button><button data-settings-target="support" type="button"><i data-lucide="life-buoy"></i>服务与支持</button></aside><div class="settings-content"><div class="settings-pane active" data-settings-pane="profile"><div class="surface-card"><div class="card-heading"><div><p class="section-kicker">PROFILE</p><h2>个人信息</h2></div><button class="secondary-button" type="button" id="editProfileButton"><i data-lucide="pencil"></i>编辑资料</button></div><div class="profile-summary"><span class="avatar avatar-ink large">G</span><div><strong id="settingsName">游客</strong><span>CampusLoop 用户</span></div><span class="profile-location"><i data-lucide="map-pin"></i>地址未选择</span></div><div class="detail-list"><div><span>手机号</span><strong>+60 12 345 6789</strong></div><div><span>邮箱</span><strong>hello@example.com</strong></div><div><span>语言</span><strong>简体中文</strong></div></div></div></div><div class="settings-pane" data-settings-pane="addresses"><div class="surface-card"><div class="card-heading"><div><p class="section-kicker">ADDRESS BOOK</p><h2>地址簿</h2></div><button class="primary-button small" type="button"><i data-lucide="plus"></i>新增地址</button></div><div class="address-card default"><div><span class="address-label">默认地址</span><strong>KLCC · Kuala Lumpur</strong><p>Jalan Ampang, 50450 Kuala Lumpur</p></div><button class="icon-button soft" title="编辑地址"><i data-lucide="pencil"></i></button></div><div class="address-card"><div><span class="address-label">学校</span><strong>University of Malaya</strong><p>50603 Kuala Lumpur</p></div><button class="icon-button soft" title="编辑地址"><i data-lucide="pencil"></i></button></div></div></div><div class="settings-pane" data-settings-pane="identity"><div class="surface-card identity-card"><div class="identity-illustration"><i data-lucide="shield-check"></i></div><div><p class="section-kicker">IDENTITY</p><h2>实名认证</h2><p>完成实名认证后，才可以创建二手交易和辅导订单。证件仅用于审核。</p><span class="identity-status pending" id="identityStatus">尚未认证</span></div><button class="primary-button" id="openIdentityButton" type="button">开始认证</button></div></div><div class="settings-pane" data-settings-pane="security"><div class="surface-card"><div class="card-heading"><div><p class="section-kicker">SECURITY</p><h2>账号安全</h2></div></div><div class="setting-row"><span><strong>登录密码</strong><small>上次修改：从未修改</small></span><button class="secondary-button small" type="button">修改密码</button></div><div class="setting-row"><span><strong>登录设备</strong><small>当前设备 · Safari · Kuala Lumpur</small></span><button class="text-button" type="button">查看记录<i data-lucide="arrow-right"></i></button></div></div></div><div class="settings-pane" data-settings-pane="notifications"><div class="surface-card"><div class="card-heading"><div><p class="section-kicker">NOTIFICATIONS</p><h2>消息与隐私</h2></div></div><div class="setting-row"><span><strong>订单更新</strong><small>辅导和二手订单状态变化</small></span><label class="toggle"><input type="checkbox" checked /><span></span></label></div><div class="setting-row"><span><strong>新消息提醒</strong><small>收到私信时通知我</small></span><label class="toggle"><input type="checkbox" checked /><span></span></label></div><div class="setting-row"><span><strong>公开我的城市</strong><small>只显示城市，不显示详细地址</small></span><label class="toggle"><input type="checkbox" checked /><span></span></label></div></div></div><div class="settings-pane" data-settings-pane="support"><div class="support-grid"><button class="support-card" type="button"><i data-lucide="receipt-text"></i><span><strong>服务费记录</strong><small>查看二手交易相关费用</small></span><i data-lucide="arrow-up-right"></i></button><button class="support-card" type="button"><i data-lucide="message-square-text"></i><span><strong>意见反馈</strong><small>告诉我们哪里可以更好</small></span><i data-lucide="arrow-up-right"></i></button></div></div></div></div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <nav class="mobile-nav" aria-label="移动端主导航"><button class="active" data-view="home" type="button"><i data-lucide="layout-grid"></i><span>首页</span></button><button data-view="market" type="button"><i data-lucide="shopping-bag"></i><span>市场</span></button><button data-view="tutoring" type="button"><i data-lucide="graduation-cap"></i><span>找辅导（作业完善）</span></button><button data-view="settings" type="button"><i data-lucide="user-round"></i><span>我的</span></button></nav>
+
+    <div class="modal-backdrop" id="authModal" hidden><section class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="authTitle"><button class="modal-close" data-close-modal="authModal" type="button" aria-label="关闭"><i data-lucide="x"></i></button><p class="section-kicker">WELCOME BACK</p><h2 id="authTitle">登录 CampusLoop</h2><p class="modal-copy">使用同一个账号登录用户端、市场和订单服务。</p><div class="auth-tabs"><button class="active" data-auth-mode="login" type="button">登录</button><button data-auth-mode="register" type="button">注册</button></div><form id="authForm"><label>邮箱<input id="authIdentifier" type="email" required autocomplete="email" placeholder="hello@example.com" /></label><label id="authNameField" hidden>昵称<input id="authName" placeholder="你的昵称" /></label><label>密码<input id="authPassword" type="password" minlength="6" required autocomplete="current-password" placeholder="至少 6 位" /></label><p class="auth-code-hint" id="authCodeHint" hidden>邮箱注册会发送验证邮件。手机号验证码登录将在短信服务部署后开放。</p><p class="form-message" id="authMessage" aria-live="polite"></p><button class="primary-button full-button" type="submit">登录账号</button></form><p class="modal-footnote">继续即表示你同意 CampusLoop 的服务条款和隐私政策。</p></section></div>
+    <div class="modal-backdrop" id="mentorAuthModal" hidden><section class="modal-dialog small-dialog" role="dialog" aria-modal="true" aria-labelledby="mentorAuthTitle"><button class="modal-close" data-close-modal="mentorAuthModal" type="button" aria-label="关闭"><i data-lucide="x"></i></button><p class="section-kicker">MENTOR ACCESS</p><h2 id="mentorAuthTitle">辅导员登录</h2><p class="modal-copy">输入平台分配的辅导员账号，登录后才能查看匿名需求和提交报价。</p><form id="mentorAuthForm"><label>辅导员账号<input id="mentorUsername" name="username" required autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="输入辅导员账号" /></label><label>密码<input id="mentorPassword" name="password" type="password" required autocomplete="current-password" placeholder="输入密码" /></label><p class="form-message" id="mentorAuthMessage" aria-live="polite"></p><button class="primary-button full-button" id="mentorAuthSubmit" type="submit"><i data-lucide="log-in"></i>登录辅导员端</button></form><div class="mentor-auth-note"><i data-lucide="lock-keyhole"></i><span><strong>仅限受邀辅导员</strong><small>账号由平台统一分配，该入口不开放注册。</small></span></div></section></div>
+    <div class="modal-backdrop" id="locationModal" hidden><section class="modal-dialog small-dialog" role="dialog" aria-modal="true" aria-labelledby="locationTitle"><button class="modal-close" data-close-modal="locationModal" type="button" aria-label="关闭"><i data-lucide="x"></i></button><p class="section-kicker">BROWSE AREA</p><h2 id="locationTitle">选择浏览地区</h2><p class="modal-copy">这里只影响二手市场展示，不会修改账户默认地址。</p><form id="locationForm"><label>国家<select id="locationCountry" required></select></label><label>城市<select id="locationCity" required></select></label><button class="primary-button full-button" type="submit">保存浏览地区</button></form></section></div>
+    <div class="modal-backdrop" id="identityModal" hidden><section class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="identityTitle"><button class="modal-close" data-close-modal="identityModal" type="button" aria-label="关闭"><i data-lucide="x"></i></button><p class="section-kicker">IDENTITY CHECK</p><h2 id="identityTitle">提交实名认证</h2><p class="modal-copy">请提交清晰的证件信息。审核资料将按隐私策略处理。</p><form id="identityForm"><label>姓名<input id="identityName" name="name" required autocomplete="name" placeholder="与证件一致的姓名" /></label><label>证件类型<select id="identityDocType" name="docType"><option>护照</option><option>身份证</option><option>学生证</option></select></label><label class="upload-zone compact identity-upload-zone" id="identityUploadZone"><input id="identityDocument" name="document" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" /><span class="identity-upload-empty" id="identityUploadEmpty"><i data-lucide="scan-face"></i><span><strong>上传证件</strong><small>JPG、PNG、WebP 或 PDF，最大 8 MB</small></span></span><span class="identity-file-preview" id="identityFilePreview" aria-live="polite" hidden><span class="identity-preview-visual" id="identityPreviewVisual"></span><span class="identity-preview-copy"><strong id="identityFileName"></strong><small id="identityFileMeta"></small><em>点击这里可更换文件</em></span><button class="identity-file-remove" id="identityFileRemove" type="button" aria-label="移除已选择的证件"><i data-lucide="x"></i></button></span></label><p class="form-message" id="identityMessage" aria-live="polite"></p><button class="primary-button full-button" id="identitySubmitButton" type="submit">提交审核</button></form></section></div>
+    <div class="modal-backdrop product-lightbox" id="productImageModal" hidden><section class="product-lightbox-dialog" role="dialog" aria-modal="true" aria-label="商品大图预览"><button class="product-lightbox-close" data-close-modal="productImageModal" type="button" aria-label="关闭大图预览" title="关闭"><i data-lucide="x"></i></button><div class="product-lightbox-media" id="productLightboxMedia"><img id="productLightboxImage" src="" alt="" /><span class="product-lightbox-fallback"><i data-lucide="image-off"></i><strong>图片暂时无法加载</strong></span></div><p id="productImageCaption"></p></section></div>
+    <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+    <script src="commerce-data.js?v=20260822-4"></script>
+    <script src="market-config.js?v=20260824-4-local-gate"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.55.0/dist/umd/supabase.min.js"></script>
+    <script src="market-cloud.js?v=20260824-2-singleton"></script>
+    <script src="platform-cloud.js?v=20260824-2-singleton"></script>
+    <script src="location-data.js"></script>
+    <script src="location-cities-1.js"></script>
+    <script src="location-cities-2.js"></script>
+    <script src="location-cities-3.js"></script>
+    <script src="location-cities-4.js"></script>
+    <script src="location-cities-5.js"></script>
+    <script src="location-cities-6.js"></script>
+    <script src="app.js?v=20260824-2-auth-session"></script>
   </body>
 </html>

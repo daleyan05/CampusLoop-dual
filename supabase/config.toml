@@ -1,0 +1,33 @@
+project_id = "campusloop"
+
+# Keep database migrations explicit. The production project must be linked
+# manually after a staging reset and contract test pass.
+[db]
+major_version = 15
+
+[api]
+enabled = true
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:4175"
+additional_redirect_urls = ["http://localhost:4175"]
+enable_signup = true
+
+[storage]
+enabled = true
+
+[functions.health]
+verify_jwt = false
+
+[functions.payment-webhook]
+verify_jwt = false
+
+[functions.send-sms-code]
+verify_jwt = false
+
+[functions.validate-upload]
+verify_jwt = true
