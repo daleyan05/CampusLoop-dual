@@ -7,7 +7,7 @@ declare
   missing_tables text;
   required_table text;
 begin
-  select string_agg(required_table, ', ' order by required_table)
+    select string_agg(expected.required_table, ', ' order by expected.required_table)
     into missing_tables
   from (values
     ('profiles'), ('user_private_profiles'), ('user_roles'), ('addresses'),

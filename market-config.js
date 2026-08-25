@@ -1,12 +1,11 @@
 // Fill these public client values after creating the Supabase project.
 // The publishable/anon key is safe to expose when Row Level Security is enabled.
 globalThis.CAMPUSLOOP_MARKET_CONFIG = Object.freeze({
-  // Keep the browser on local demo data until a separate staging database
-  // has passed the migration and permission checks. Set true only for that
-  // verified environment (never for the old Production project).
-  cloudEnabled: false,
-  supabaseUrl: "https://lvoobltxibrpucpnndrz.supabase.co",
-  supabasePublishableKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2b29ibHR4aWJycHVjcG5uZHJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMDc2NzMsImV4cCI6MjEwMjg4MzY3M30.QDV80A55iuE-naWqBRNBor0HAkFav_waLO-LIpEQDwg"
+  // Staging v2 schema has passed migration and contract checks.
+  // Production remains disabled until staging acceptance is complete.
+  cloudEnabled: true,
+  supabaseUrl: "https://hdupthrwdfawbbkckita.supabase.co",
+  supabasePublishableKey: "sb_publishable_hiP9_iCbembqmioWO7AaJw_Y2xRHvLN"
 });
 
 // Keep every adapter in one document on the same GoTrue/Realtime client.

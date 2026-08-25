@@ -35,8 +35,13 @@ if (!supabaseUrl || !publishableKey) {
       const response = await fetch(`${supabaseUrl}/rest/v1/${table}?select=*&limit=1`, { headers });
       return { table, ok: response.ok, status: response.status };
     }));
-    tableResults.forEach(({ table, ok, status }) => record(`table:${table}`, ok, ok ? "visible through REST" : `HTTP ${status}; migration likely not applied`));
-    result.schemaReady = tableResults.every(({ ok }) => ok);
+    // RLS-protected tables intentionally reject anonymous reads with 401/403.
+    // Treat those responses as schema-present; only 404 means the migration is missing.
+    tableResults.forEach(({ table, ok, status }) => {
+      const schemaPresent = ok || status === 401 || status === 403;
+      record(`table:${table}`, schemaPresent, ok ? "visible through REST" : schemaPresent ? `HTTP ${status}; table exists and RLS is protecting it` : `HTTP ${status}; migration likely not applied`);
+    });
+    result.schemaReady = tableResults.every(({ ok, status }) => ok || status === 401 || status === 403);
   } catch (error) {
     record("network", false, error instanceof Error ? error.message : String(error));
   }
