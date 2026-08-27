@@ -1,4 +1,4 @@
-const appState={view:"home",category:"all",location:{country:"",countryName:"",city:""},locationSource:"none",loggedIn:false,userId:"",userName:"游客",userEmail:"",identitySubmitted:false,tutorMode:"student",mentorAccount:null};
+const appState={view:"home",category:"all",location:{country:"",countryName:"",city:""},locationSource:"none",loggedIn:false,userId:"",userName:"游客",userEmail:"",userPhone:"",identitySubmitted:false,tutorMode:"student",mentorAccount:null};
 let mentorCloudRequests=[];
 let mentorCloudRequestsPromise=null;
 const commerce=globalThis.CampusLoopCommerce;
@@ -73,6 +73,8 @@ let postImageFiles=[];
 let marketPostSubmitting=false;
 let identityDocumentState=null;
 let identityFileReadToken=0;
+let authOtpPending=null;
+let authResendTimer=null;
 const $=(selector,root=document)=>root.querySelector(selector);const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
 function renderIcons(){if(window.lucide?.createIcons)window.lucide.createIcons({attrs:{"aria-hidden":"true",focusable:"false"}})}
 function showToast(message,icon="check-circle-2"){const region=$("#toastRegion"),toast=document.createElement("div");toast.className="toast";toast.innerHTML=`<i data-lucide="${icon}"></i><span>${message}</span>`;region.append(toast);renderIcons();window.setTimeout(()=>toast.remove(),3400)}
@@ -86,9 +88,9 @@ function activeAccountRestriction(userId){const restriction=getAccountRestrictio
 function accountRestrictionMessage(restriction){const until=restriction.expiresAt?`至 ${new Date(restriction.expiresAt).toLocaleString("zh-CN",{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}`:"永久";return `该账户已被平台封禁（${until}）。原因：${restriction.reason||"违反平台规则"}。如有异议，请联系客服。`}
 function authStores(){const stores=[];try{if(globalThis.localStorage)stores.push(globalThis.localStorage)}catch{}try{if(globalThis.sessionStorage)stores.push(globalThis.sessionStorage)}catch{}return stores}
 function readAuthSession(){for(const store of authStores()){try{const session=JSON.parse(store.getItem(authSessionStorageKey)||"null");if(!session||typeof session!=="object"||!session.userId||!session.name)continue;const issuedAt=Date.parse(session.issuedAt||"");if(!issuedAt||Date.now()-issuedAt>authSessionMaxAgeMs){store.removeItem(authSessionStorageKey);continue}return session}catch{}}return null}
-function persistAuthSession(){const session={version:1,userId:accountUserId(),name:appState.userName,contact:appState.userEmail,issuedAt:new Date().toISOString()},serialized=JSON.stringify(session);let saved=false;for(const store of authStores()){try{store.setItem(authSessionStorageKey,serialized);saved=true}catch{}}return saved}
-function applyAuthSession(session,{refresh=true}={}){if(!session?.userId||!session.name)return false;appState.loggedIn=true;appState.userId=String(session.userId);appState.userName=String(session.name);appState.userEmail=String(session.contact||"");if(refresh){updateAccount();useAccountDefaultLocation();rememberCurrentUser(appState.userEmail)}return true}
-function applyCloudAuthUser(user){if(!user?.id)return false;appState.loggedIn=true;appState.userId=String(user.id);appState.userName=String(user.name||user.email||"CampusLoop 用户");appState.userEmail=String(user.email||"");persistAuthSession();updateAccount();useAccountDefaultLocation();rememberCurrentUser(appState.userEmail);ensureCloudMarketSubscription();return true}
+function persistAuthSession(){const session={version:1,userId:accountUserId(),name:appState.userName,contact:appState.userEmail,phone:appState.userPhone,issuedAt:new Date().toISOString()},serialized=JSON.stringify(session);let saved=false;for(const store of authStores()){try{store.setItem(authSessionStorageKey,serialized);saved=true}catch{}}return saved}
+function applyAuthSession(session,{refresh=true}={}){if(!session?.userId||!session.name)return false;appState.loggedIn=true;appState.userId=String(session.userId);appState.userName=String(session.name);appState.userEmail=String(session.contact||"");appState.userPhone=String(session.phone||"");if(refresh){updateAccount();useAccountDefaultLocation();rememberCurrentUser(appState.userEmail)}return true}
+function applyCloudAuthUser(user){if(!user?.id)return false;appState.loggedIn=true;appState.userId=String(user.id);appState.userName=String(user.name||user.email||"CampusLoop 用户");appState.userEmail=String(user.email||"");appState.userPhone=String(user.phone||user.user_metadata?.phone||"");persistAuthSession();updateAccount();useAccountDefaultLocation();rememberCurrentUser(appState.userEmail);ensureCloudMarketSubscription();return true}
 async function hydrateCloudMarketItems({refresh=true}={}){
   if(cloudAuthMode!=="v2"||typeof cloudAuth?.listItems!=="function")return [];
   if(!hasBrowseLocation()){
@@ -157,7 +159,7 @@ function refreshPlatformCloudForCurrentUser(){
   return platformCloudReady;
 }
 function hydrateAuthSession(){const session=readAuthSession();if(!session)return false;const restriction=activeAccountRestriction(session.userId);if(restriction){for(const store of authStores()){try{store.removeItem(authSessionStorageKey)}catch{}}return false}return applyAuthSession(session,{refresh:false})}
-function clearCurrentUser({broadcast=true}={}){cloudMarketUnsubscribe?.();cloudMarketUnsubscribe=null;appState.loggedIn=false;appState.userId="";appState.userName="游客";appState.userEmail="";if(broadcast){for(const store of authStores()){try{store.removeItem(authSessionStorageKey)}catch{}}}clearAppLocation();updateAccount()}
+function clearCurrentUser({broadcast=true}={}){cloudMarketUnsubscribe?.();cloudMarketUnsubscribe=null;appState.loggedIn=false;appState.userId="";appState.userName="游客";appState.userEmail="";appState.userPhone="";if(broadcast){for(const store of authStores()){try{store.removeItem(authSessionStorageKey)}catch{}}}clearAppLocation();updateAccount()}
 function enforceCurrentUserRestriction(){if(!appState.loggedIn)return false;const restriction=activeAccountRestriction(accountUserId());if(!restriction)return false;clearCurrentUser();showToast("账户已被封禁，当前登录已退出","ban");return true}
 function rememberCurrentUser(identifier){const now=new Date().toISOString(),id=accountUserId(),directory=readStoredJson(userDirectoryStorageKey,[]),users=Array.isArray(directory)?directory.filter(user=>user&&user.id):[],previous=users.find(user=>user.id===id),address=accountDefaultAddress(),location=address?`${address.city} · ${commerce.countryName(address.country)}`:"未设置";const current={id,name:appState.userName,contact:identifier||appState.userEmail||"未填写",role:"普通用户",location,joinedAt:previous?.joinedAt||now,lastActiveAt:now};localStorage.setItem(userDirectoryStorageKey,JSON.stringify([current,...users.filter(user=>user.id!==id)]))}
 function storedUserForContact(identifier){const normalized=String(identifier||"").trim().toLowerCase();if(!normalized)return null;const users=readStoredJson(userDirectoryStorageKey,[]);return (Array.isArray(users)?users:[]).find(user=>String(user?.contact||"").trim().toLowerCase()===normalized)||null}
@@ -377,29 +379,84 @@ function loadIdentityApplicationIntoForm(){identityFileReadToken+=1;const applic
 function renderIdentityStatus(){const statusElement=$("#identityStatus"),header=$("#headerIdentityStatus"),button=$("#openIdentityButton");if(!statusElement||!header||!button)return;const application=currentIdentityApplication(),{status,review}=currentIdentityStatus(application),meta={unsubmitted:{label:"尚未认证",header:"未完成实名认证",icon:"shield-check",button:"开始认证"},pending:{label:"审核中",header:"实名认证审核中",icon:"clock-3",button:"查看申请"},approved:{label:"已认证",header:"实名认证已通过",icon:"badge-check",button:"认证已完成"},rejected:{label:`未通过${review?.reason?`：${review.reason}`:""}`,header:"实名认证未通过",icon:"circle-x",button:"重新认证"}}[status]||null;if(!meta)return;appState.identitySubmitted=Boolean(application);statusElement.textContent=meta.label;statusElement.className=`identity-status ${status}`;header.className=`verified-badge identity-header-status ${status}`;header.innerHTML=`<i data-lucide="${meta.icon}"></i>${safeText(meta.header)}`;button.textContent=meta.button;button.disabled=status==="approved";renderIcons()}
 function persistIdentityApplication(application){const applications=getIdentityApplications(),updated=[application,...applications.filter(entry=>entry.id!==application.id)];try{localStorage.setItem(identityApplicationStorageKey,JSON.stringify(updated));return true}catch{return false}}
 function requireIdentityApproval(action){if(!requireLogin(action))return false;const {status,review}=currentIdentityStatus();if(status==="approved")return true;goToView("settings");document.querySelector('[data-settings-target="identity"]')?.click();if(status==="pending"){showToast("实名认证正在审核，通过后才可以继续交易","clock-3");return false}loadIdentityApplicationIntoForm();openModal("identityModal");if(status==="rejected")setIdentityMessage(review?.reason?`上次未通过：${review.reason}`:"请重新提交清晰、有效的证件资料","error");else setIdentityMessage("完成实名认证后才可以继续交易");return false}
-function updateAccount(){$("#railUser").hidden=!appState.loggedIn;$(".profile-name").textContent=appState.loggedIn?appState.userName:"游客";$("#railUserName").textContent=appState.loggedIn?appState.userName:"游客";$(".profile-button .avatar").textContent=appState.loggedIn?appState.userName.slice(0,1).toUpperCase():"G";$("#settingsName").textContent=appState.loggedIn?appState.userName:"游客";identityFileReadToken+=1;identityDocumentState=null;renderIdentityStatus();renderAccountAddressUi();if($("#postAddress"))populatePostAddresses()}
+function updateAccount(){$("#railUser").hidden=!appState.loggedIn;$(".profile-name").textContent=appState.loggedIn?appState.userName:"游客";$("#railUserName").textContent=appState.loggedIn?appState.userName:"游客";$(".profile-button .avatar").textContent=appState.loggedIn?appState.userName.slice(0,1).toUpperCase():"G";$("#settingsName").textContent=appState.loggedIn?appState.userName:"游客";const detailValues=$(".settings-pane[data-settings-pane='profile'] .detail-list")?.querySelectorAll("div strong");if(detailValues?.length>=2){detailValues[0].textContent=appState.loggedIn?(appState.userPhone||"未填写"):"未填写";detailValues[1].textContent=appState.loggedIn?(appState.userEmail||"未填写"):"未填写"}identityFileReadToken+=1;identityDocumentState=null;renderIdentityStatus();renderAccountAddressUi();if($("#postAddress"))populatePostAddresses()}
 function bindViewNavigation(){$$('[data-view],[data-view-target],[data-view-link]').forEach(button=>button.addEventListener("click",event=>{event.preventDefault();const view=button.dataset.view||button.dataset.viewTarget||button.dataset.viewLink;if(view)goToView(view)}))}
 function bindAuth(){
-  $("#profileButton").addEventListener("click",()=>appState.loggedIn?goToView("settings"):openModal("authModal"));
+  const form=$("#authForm"),submit=form?.querySelector(".primary-button"),message=$("#authMessage"),otpField=$("#authOtpField"),otp=$("#authOtp");
+  const resend=document.createElement("button");resend.type="button";resend.id="authResendButton";resend.className="secondary-button full-button";resend.hidden=true;resend.textContent="重新发送验证码";submit?.after(resend);
+  const setMessage=(text,type="")=>{message.textContent=text;message.className=`form-message${type?` ${type}`:""}`};
+  const resetOtp=()=>{authOtpPending=null;otpField.hidden=true;otp.value="";submit.textContent="发送验证码";resend.hidden=true;if(authResendTimer){clearInterval(authResendTimer);authResendTimer=null}};
+  const startResendCooldown=()=>{let remaining=60;resend.disabled=true;resend.hidden=false;resend.textContent=`重新发送验证码（${remaining}s）`;if(authResendTimer)clearInterval(authResendTimer);authResendTimer=setInterval(()=>{remaining-=1;if(remaining<=0){clearInterval(authResendTimer);authResendTimer=null;resend.disabled=false;resend.textContent="重新发送验证码"}else resend.textContent=`重新发送验证码（${remaining}s）`},1000)};
+  $("#profileButton").addEventListener("click",()=>{if(appState.loggedIn){goToView("settings");return}resetOtp();form.reset();openModal("authModal")});
   $("#railLogout").addEventListener("click",async()=>{if(cloudAuthMode==="v2"||cloudAuthMode==="legacy")await cloudAuth?.signOut().catch(error=>console.warn("CampusLoop cloud sign out failed",error));clearCurrentUser();showToast("已退出当前账号")});
-  $$('[data-auth-mode]').forEach(button=>button.addEventListener("click",()=>{$$('[data-auth-mode]').forEach(tab=>tab.classList.toggle("active",tab===button));const register=button.dataset.authMode==="register";$("#authNameField").hidden=!register;$("#authCodeHint").hidden=!register;$("#authTitle").textContent=register?"创建 CampusLoop 账号":"登录 CampusLoop";$("#authForm .primary-button").textContent=register?"注册并进入":"登录账号"}));
-  $("#authForm").addEventListener("submit",async event=>{
+  $$('[data-auth-mode]').forEach(button=>button.addEventListener("click",()=>{
+    resetOtp();
+    $$('[data-auth-mode]').forEach(tab=>tab.classList.toggle("active",tab===button));
+    const register=button.dataset.authMode==="register";
+    $("#authNameField").hidden=!register;
+    $("#authTitle").textContent=register?"创建 CampusLoop 账号":"登录 CampusLoop";
+    submit.textContent=authOtpPending?"验证并进入":"发送验证码";
+    setMessage("");
+  }));
+  $("#authModal")?.addEventListener("close",resetOtp);
+  form.addEventListener("submit",async event=>{
     event.preventDefault();
-    const register=!$("#authNameField").hidden,identifier=$("#authIdentifier").value.trim(),password=$("#authPassword").value,name=$("#authName").value.trim();
-    if(!identifier||!password||(register&&!name)){ $("#authMessage").textContent="请完整填写账号信息。";$("#authMessage").className="form-message error";return }
-    if(password.length<6){$("#authMessage").textContent="密码至少需要 6 位。";$("#authMessage").className="form-message error";return}
-    $("#authMessage").className="form-message";
+    if(submit.disabled)return;
+    const register=!$("#authNameField").hidden;
+    const email=$("#authIdentifier").value.trim().toLowerCase();
+    const phone=$("#authPhone").value.trim();
+    const name=$("#authName").value.trim();
+    const token=otp.value.replace(/\D/g,"").slice(0,6);
+    if(!/^\S+@\S+\.\S+$/.test(email)){setMessage("请输入有效的邮箱地址。","error");return}
+    if(!/^\+?[1-9][\d\s().-]{6,18}$/.test(phone)){setMessage("请输入手机号，建议使用带国家区号的格式，例如 +86 13800000000。","error");return}
+    if(register&&!name){setMessage("注册时请填写昵称。","error");return}
     try{await cloudAuthReady}catch{}
-    const useCloud=(cloudAuthMode==="v2"||cloudAuthMode==="legacy")&&identifier.includes("@");
-    if((cloudAuthMode==="v2"||cloudAuthMode==="legacy")&&!identifier.includes("@")){$("#authMessage").textContent="当前云端尚未启用手机号登录，请先使用邮箱账号；短信登录将在启用 SMS 后开放。";$("#authMessage").className="form-message error";return}
-    if(useCloud){
-      const submit=$("#authForm .primary-button");submit.disabled=true;$("#authMessage").textContent=register?"正在创建安全账号…":"正在登录…";
-      try{const result=register?await cloudAuth.signUp({name,email:identifier,password}):await cloudAuth.signIn({email:identifier,password});if(result.needsEmailConfirmation){$("#authMessage").textContent="验证邮件已发送，请完成邮箱验证后再登录。";$("#authMessage").className="form-message success";return}if(!result.user)throw new Error("auth_user_missing");applyCloudAuthUser(result.user);await refreshPlatformCloudForCurrentUser();closeModal("authModal");showToast(register?"注册成功，已使用账户默认地址":"登录成功，已恢复账户默认地址","map-pin");return}catch(error){console.error("CampusLoop user authentication failed",error);$("#authMessage").textContent=error?.message==="Invalid login credentials"?"邮箱或密码不正确。":"登录服务暂时不可用，请稍后重试。";$("#authMessage").className="form-message error";return}finally{submit.disabled=false}
-    }
-    const storedUser=storedUserForContact(identifier),userName=register?(name||"CampusLoop 用户"):storedUser?.name||"Lena",userId=storedUser?.id||accountUserId(userName),restriction=activeAccountRestriction(userId);
-    if(restriction){$("#authMessage").textContent=accountRestrictionMessage(restriction);$("#authMessage").className="form-message error";return}
-    if(!register&&!storedUser){$("#authMessage").textContent="没有找到这个账号，请先注册。";$("#authMessage").className="form-message error";return}
-    appState.loggedIn=true;appState.userId=userId;appState.userName=userName;appState.userEmail=identifier.includes("@")?identifier:"";updateAccount();useAccountDefaultLocation();rememberCurrentUser(identifier);persistAuthSession();$("#authMessage").textContent="";$("#authMessage").className="form-message";closeModal("authModal");showToast(register?"注册成功，已使用账户默认地址":"登录成功，已恢复账户默认地址","map-pin");
+    const useCloud=(cloudAuthMode==="v2"||cloudAuthMode==="legacy")&&typeof cloudAuth?.requestEmailOtp==="function";
+    submit.disabled=true;
+    try{
+      if(!authOtpPending){
+        if(useCloud){
+          await cloudAuth.requestEmailOtp({name,email,phone,register});
+          authOtpPending={email,phone,name,register,cloud:true};
+          setMessage(`验证码已发送到 ${email}，请查收邮件。`,"success");
+        }else{
+          // Local mode remains usable without a backend. The fixed demo code
+          // is intentionally shown so this path is testable and unambiguous.
+          authOtpPending={email,phone,name,register,cloud:false,code:"123456"};
+          setMessage("演示模式验证码为 123456。连接云端后将改为真实邮件验证码。","success");
+        }
+        otpField.hidden=false;submit.textContent="验证并进入";startResendCooldown();otp.focus();return;
+      }
+      if(token.length!==6){setMessage("请输入邮件中的 6 位验证码。","error");return}
+      const pending=authOtpPending;
+      if(pending.cloud){
+        const result=await cloudAuth.verifyEmailOtp({email:pending.email,phone:pending.phone,name:pending.name,token});
+        if(!result?.user)throw new Error("auth_user_missing");
+        applyCloudAuthUser(result.user);await refreshPlatformCloudForCurrentUser();
+      }else{
+        if(token!==pending.code){setMessage("验证码不正确，请重新输入。","error");return}
+        const storedUser=storedUserForContact(pending.email);
+        const userName=pending.register?(pending.name||"CampusLoop 用户"):storedUser?.name||"Lena";
+        const userId=storedUser?.id||accountUserId(userName),restriction=activeAccountRestriction(userId);
+        if(restriction){setMessage(accountRestrictionMessage(restriction),"error");return}
+        if(!pending.register&&!storedUser){setMessage("没有找到这个账号，请先注册。","error");return}
+        appState.loggedIn=true;appState.userId=userId;appState.userName=userName;appState.userEmail=pending.email;appState.userPhone=pending.phone;updateAccount();useAccountDefaultLocation();rememberCurrentUser(pending.email);persistAuthSession();
+      }
+      authOtpPending=null;otpField.hidden=true;otp.value="";resend.hidden=true;if(authResendTimer){clearInterval(authResendTimer);authResendTimer=null}setMessage("");closeModal("authModal");showToast(pending.register?"注册成功，已使用账户默认地址":"登录成功，已恢复账户默认地址","map-pin");
+    }catch(error){
+      console.error("CampusLoop user authentication failed",error);
+      const code=String(error?.code||error?.message||"");
+      const sending=!authOtpPending;
+      setMessage(code.includes("invalid_phone")?"手机号格式不正确，请带国家区号输入。":code.includes("invalid_email")?"邮箱格式不正确。":sending?"验证码发送失败，请检查 Supabase 邮件服务配置后重试。":code.includes("invalid_email_otp")||code.includes("otp")?"验证码不正确或已过期，请重新获取。":"登录服务暂时不可用，请稍后重试。","error");
+    }finally{submit.disabled=false}
+  });
+  resend.addEventListener("click",async()=>{
+    if(!authOtpPending||resend.disabled)return;
+    const pending=authOtpPending;resend.disabled=true;setMessage("正在重新发送验证码…");
+    try{
+      if(pending.cloud)await cloudAuth.requestEmailOtp({name:pending.name,email:pending.email,phone:pending.phone,register:pending.register});
+      setMessage(`验证码已重新发送到 ${pending.email}。`,"success");startResendCooldown();
+    }catch(error){console.error("CampusLoop OTP resend failed",error);resend.disabled=false;setMessage("验证码暂时发送失败，请稍后重试。","error")}
   });
   window.addEventListener("storage",event=>{if(event.key===accountRestrictionStorageKey)enforceCurrentUserRestriction();if(event.key===authSessionStorageKey){if(event.newValue){try{const session=JSON.parse(event.newValue);if(!activeAccountRestriction(session.userId))applyAuthSession(session)}catch{}}else if(appState.loggedIn)clearCurrentUser({broadcast:false})}})
 }
@@ -770,7 +827,7 @@ function bindSettings(){
   renderIdentityStatus();
 }
 function bindProduct(){const image=$("#productImage"),lightboxImage=$("#productLightboxImage"),trigger=$("#productImageTrigger"),lightboxMedia=$("#productLightboxMedia");image.addEventListener("load",()=>trigger.classList.remove("is-unavailable"));image.addEventListener("error",()=>trigger.classList.add("is-unavailable"));lightboxImage.addEventListener("load",()=>lightboxMedia.classList.remove("is-unavailable"));lightboxImage.addEventListener("error",()=>lightboxMedia.classList.add("is-unavailable"));trigger.addEventListener("click",()=>openModal("productImageModal"));$("#productOrderButton").addEventListener("click",()=>{if(requireIdentityApproval("创建交易订单"))showToast("实名认证已确认，可以创建交易订单","file-plus-2")});$("#productFavoriteButton").addEventListener("click",event=>{event.currentTarget.classList.toggle("active");showToast(event.currentTarget.classList.contains("active")?"已加入收藏":"已取消收藏","heart")})}
-function bindModals(){$$('[data-close-modal]').forEach(button=>button.addEventListener("click",()=>closeModal(button.dataset.closeModal)));$$('.modal-backdrop').forEach(backdrop=>backdrop.addEventListener("click",event=>{if(event.target===backdrop)closeModal(backdrop.id)}));document.addEventListener("keydown",event=>{if(event.key==="Escape")$$('.modal-backdrop:not([hidden])').forEach(modal=>closeModal(modal.id));if(event.key==="/"&&document.activeElement.tagName!=="INPUT"&&document.activeElement.tagName!=="TEXTAREA"){event.preventDefault();$("#globalSearch").focus()}})}
+function bindModals(){$$('[data-close-modal]').forEach(button=>button.addEventListener("click",()=>{if(button.dataset.closeModal==="authModal")authOtpPending=null;closeModal(button.dataset.closeModal)}));$$('.modal-backdrop').forEach(backdrop=>backdrop.addEventListener("click",event=>{if(event.target===backdrop){if(backdrop.id==="authModal")authOtpPending=null;closeModal(backdrop.id)}}));document.addEventListener("keydown",event=>{if(event.key==="Escape")$$('.modal-backdrop:not([hidden])').forEach(modal=>{if(modal.id==="authModal")authOtpPending=null;closeModal(modal.id)});if(event.key==="/"&&document.activeElement.tagName!=="INPUT"&&document.activeElement.tagName!=="TEXTAREA"){event.preventDefault();$("#globalSearch").focus()}})}
 function init(){migrateLegacyDemoAddresses();hydrateAuthSession();hydrateLocation();hydrateMentorSession();cloudAuthReady=initializeCloudAuth();platformCloudReady=initializePlatformCloud();setupAcademicFields();setupTutorWorkflow();setupAddressBook();bindCloudAddressEvents();setupMarketPost();normalizeMarketPostControls();bindViewNavigation();bindAuth();bindMentorAuth();bindLocation();bindMarket();bindMarketPost();bindPublishedItemSync();bindTutoring();bindSettings();bindProduct();bindModals();applyTutorMode("student");renderMarket();renderMentorRequests();renderTutorWorkflow();updateAccount();applyLocationUi();window.addEventListener("hashchange",applyRouteFromLocation);window.addEventListener("popstate",applyRouteFromLocation);applyRouteFromLocation();renderIcons()}
 function enforceMarketPostConstraints(){const price=$("#postPrice"),title=$("#postTitle"),description=$("#postDescription");if(price)price.min="0.01";if(title)title.minLength=2;if(description)description.minLength=1}
 document.addEventListener("DOMContentLoaded",init);

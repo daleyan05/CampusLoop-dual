@@ -83,6 +83,7 @@
     return {
       id: authUser.id,
       email: authUser.email || "",
+      phone: authUser.phone || authUser.user_metadata?.phone || "",
       name: authUser.user_metadata?.display_name
         || String(authUser.email || "CampusLoop 用户").split("@")[0],
       createdAt: authUser.created_at
@@ -242,6 +243,7 @@
     return {
       id: authUser.id,
       email: authUser.email || "",
+      phone: authUser.phone || authUser.user_metadata?.phone || "",
       name: data?.display_name || authUser.user_metadata?.display_name || String(authUser.email || "CampusLoop 用户").split("@")[0],
       createdAt: data?.created_at || authUser.created_at
     };
@@ -382,15 +384,52 @@
       const { data } = await client.auth.getSession();
       return { user: await profileForAuthUser(data?.session?.user || null), mode: schema };
     },
-    async signUp({ name, email, password }) {
-      const data = requireData(await client.auth.signUp({ email, password, options: { data: { display_name: name } } }));
-      await ensureSchema();
-      return { user: await profileForAuthUser(data.user), needsEmailConfirmation: !data.session };
+    async requestEmailOtp({ name, email, phone, register = false }) {
+      const normalizedEmail = String(email || "").trim().toLowerCase();
+      const normalizedPhone = String(phone || "").replace(/[\s().-]+/g, "");
+      if (!normalizedEmail || !normalizedEmail.includes("@")) {
+        const error = new Error("invalid_email");
+        error.code = "invalid_email";
+        throw error;
+      }
+      if (!/^\+[1-9]\d{7,14}$/.test(normalizedPhone)) {
+        const error = new Error("invalid_phone");
+        error.code = "invalid_phone";
+        throw error;
+      }
+      requireData(await client.auth.signInWithOtp({
+        email: normalizedEmail,
+        options: {
+          shouldCreateUser: Boolean(register),
+          data: {
+            ...(name ? { display_name: String(name).trim() } : {}),
+            phone: normalizedPhone
+          }
+        }
+      }));
+      return { email: normalizedEmail, phone: normalizedPhone };
     },
-    async signIn({ email, password }) {
-      const data = requireData(await client.auth.signInWithPassword({ email, password }));
+    async verifyEmailOtp({ email, token, phone, name }) {
+      const normalizedEmail = String(email || "").trim().toLowerCase();
+      const normalizedToken = String(token || "").replace(/\D/g, "").slice(0, 6);
+      const normalizedPhone = String(phone || "").replace(/[\s().-]+/g, "");
+      if (!normalizedEmail || normalizedToken.length !== 6) {
+        const error = new Error("invalid_email_otp");
+        error.code = "invalid_email_otp";
+        throw error;
+      }
+      const data = requireData(await client.auth.verifyOtp({ email: normalizedEmail, token: normalizedToken, type: "email" }));
+      // Email OTP does not require an SMS provider. Persist the required phone
+      // number as user metadata so the existing auth trigger mirrors it into
+      // user_private_profiles without exposing that table to the browser.
+      if (/^\+[1-9]\d{7,14}$/.test(normalizedPhone) && data?.user) {
+        requireData(await client.auth.updateUser({ data: {
+          ...(name ? { display_name: String(name).trim() } : {}),
+          phone: normalizedPhone
+        } }));
+      }
       await ensureSchema();
-      return { user: await profileForAuthUser(data.user) };
+      return { user: await profileForAuthUser((await client.auth.getUser()).data?.user || data.user) };
     },
     async signOut() {
       requireData(await client.auth.signOut());
