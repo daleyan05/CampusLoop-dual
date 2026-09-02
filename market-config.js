@@ -1,11 +1,10 @@
 // Fill these public client values after creating the Supabase project.
 // The publishable/anon key is safe to expose when Row Level Security is enabled.
 globalThis.CAMPUSLOOP_MARKET_CONFIG = Object.freeze({
-  // Staging v2 schema has passed migration and contract checks.
-  // Production remains disabled until staging acceptance is complete.
+  // Production v2 schema has passed migration and contract checks.
   cloudEnabled: true,
-  supabaseUrl: "https://hdupthrwdfawbbkckita.supabase.co",
-  supabasePublishableKey: "sb_publishable_hiP9_iCbembqmioWO7AaJw_Y2xRHvLN",
+  supabaseUrl: "https://czauswtphccgkkeutmsg.supabase.co",
+  supabasePublishableKey: "sb_publishable_REBMDklWw2gBPoAdw1narQ_iXpo6LsN",
   // Fixed staff aliases authenticate through their dedicated Supabase users.
   // Keep the mapping public; passwords remain in Supabase Auth only.
   authAccountDomain: "campusloopapp.net",
