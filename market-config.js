@@ -5,7 +5,18 @@ globalThis.CAMPUSLOOP_MARKET_CONFIG = Object.freeze({
   // Production remains disabled until staging acceptance is complete.
   cloudEnabled: true,
   supabaseUrl: "https://hdupthrwdfawbbkckita.supabase.co",
-  supabasePublishableKey: "sb_publishable_hiP9_iCbembqmioWO7AaJw_Y2xRHvLN"
+  supabasePublishableKey: "sb_publishable_hiP9_iCbembqmioWO7AaJw_Y2xRHvLN",
+  // Fixed staff aliases authenticate through their dedicated Supabase users.
+  // Keep the mapping public; passwords remain in Supabase Auth only.
+  authAccountDomain: "campusloopapp.net",
+  adminAuthEmails: Object.freeze({
+    Lessured: "lessured@campusloopapp.net",
+    Lessures: "lessures@campusloopapp.net"
+  }),
+  mentorAuthEmails: Object.freeze({
+    Lessured: "lessured@campusloopapp.net",
+    Lessures: "lessures@campusloopapp.net"
+  })
 });
 
 // Keep every adapter in one document on the same GoTrue/Realtime client.
