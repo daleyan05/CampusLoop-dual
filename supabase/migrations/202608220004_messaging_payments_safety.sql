@@ -1276,4 +1276,7 @@ begin
 exception when duplicate_object then null;
 end $$;
 
+-- The admin cloud adapter reads listings and their media through RLS.
+grant select on table public.market_listings, public.market_listing_media to authenticated;
+
 commit;
