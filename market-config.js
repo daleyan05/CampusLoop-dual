@@ -9,12 +9,12 @@ globalThis.CAMPUSLOOP_MARKET_CONFIG = Object.freeze({
   // Keep the mapping public; passwords remain in Supabase Auth only.
   authAccountDomain: "campusloopapp.net",
   adminAuthEmails: Object.freeze({
-    Lessured: "lessured@campusloopapp.net",
-    Lessures: "lessures@campusloopapp.net"
+    Lessured: "alfredsong0930@gmail.com",
+    Lessures: "daleyan05@gmail.com"
   }),
   mentorAuthEmails: Object.freeze({
-    Lessured: "lessured@campusloopapp.net",
-    Lessures: "lessures@campusloopapp.net"
+    Lessured: "alfredsong0930@gmail.com",
+    Lessures: "daleyan05@gmail.com"
   })
 });
 
