@@ -744,6 +744,44 @@ function bindMessages(){
   renderIcons();
 }
 function bindSettings(){
+  const passwordForm=$("#passwordForm"),passwordSubmit=$("#passwordSubmitButton"),passwordMessage=$("#passwordMessage");
+  const setPasswordMessage=(message,type="")=>{if(!passwordMessage)return;passwordMessage.textContent=message;passwordMessage.className=`form-message${type?` ${type}`:""}`};
+  $("#openPasswordButton")?.addEventListener("click",()=>{
+    if(!requireLogin("修改密码"))return;
+    passwordForm?.reset();
+    setPasswordMessage("");
+    openModal("passwordModal");
+  });
+  passwordForm?.addEventListener("submit",async event=>{
+    event.preventDefault();
+    if(passwordSubmit?.disabled)return;
+    const password=$("#newPassword").value,confirmation=$("#confirmPassword").value;
+    if(password.length<8){setPasswordMessage("密码至少需要 8 位。","error");$("#newPassword").focus();return}
+    if(password!==confirmation){setPasswordMessage("两次输入的密码不一致。","error");$("#confirmPassword").focus();return}
+    passwordSubmit.disabled=true;
+    passwordSubmit.innerHTML='<i data-lucide="loader-circle"></i>正在保存…';
+    setPasswordMessage("正在安全保存新密码…");
+    renderIcons();
+    try{
+      await cloudAuthReady;
+      if((cloudAuthMode!=="v2"&&cloudAuthMode!=="legacy")||typeof cloudAuth?.updatePassword!=="function")throw Object.assign(new Error("cloud_unavailable"),{code:"cloud_unavailable"});
+      await cloudAuth.updatePassword(password);
+      passwordForm.reset();
+      setPasswordMessage("密码已设置成功。","success");
+      showToast("登录密码已更新","shield-check");
+      window.setTimeout(()=>closeModal("passwordModal"),900);
+    }catch(error){
+      const code=String(error?.code||error?.message||"").toLowerCase();
+      if(code.includes("auth_required")||code.includes("session")){setPasswordMessage("登录状态已过期，请重新登录后再设置密码。","error")}
+      else if(code.includes("same_password")){setPasswordMessage("新密码不能与当前密码相同。","error")}
+      else if(code.includes("password")&&code.includes("weak")){setPasswordMessage("密码强度不足，请增加字母、数字或符号。","error")}
+      else setPasswordMessage("密码暂时无法保存，请刷新页面后重试。","error");
+    }finally{
+      passwordSubmit.disabled=false;
+      passwordSubmit.innerHTML='<i data-lucide="key-round"></i>保存新密码';
+      renderIcons();
+    }
+  });
   const cloudIdentityForm=$("#identityForm");
   cloudIdentityForm?.addEventListener("submit",event=>{
     if(platformCloudMode!=="v2")return;

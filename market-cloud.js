@@ -384,6 +384,15 @@
       const { data } = await client.auth.getSession();
       return { user: await profileForAuthUser(data?.session?.user || null), mode: schema };
     },
+    async updatePassword(password) {
+      if (!client) throw Object.assign(new Error("cloud_unavailable"), { code: "cloud_unavailable" });
+      const value = String(password || "");
+      if (value.length < 8) throw Object.assign(new Error("password_too_short"), { code: "password_too_short" });
+      const user = await currentAuthUser();
+      if (!user?.id) throw Object.assign(new Error("auth_required"), { code: "auth_required" });
+      const data = requireData(await client.auth.updateUser({ password: value }));
+      return profileForAuthUser(data?.user || user);
+    },
     async requestEmailOtp({ name, email, phone, register = false }) {
       const normalizedEmail = String(email || "").trim().toLowerCase();
       const normalizedPhone = String(phone || "").replace(/[\s().-]+/g, "");
