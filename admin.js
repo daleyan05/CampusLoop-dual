@@ -52,7 +52,7 @@ const userDirectoryStorageKey="campusLoopUserDirectory";
 const adminSessionStorageKey="campusLoopAdminSession";
 const adminSessionMaxAgeMs=12*60*60*1000;
 const adminAccounts=Object.freeze({
-  Lessured:Object.freeze({id:"admin-lessured",username:"Lessured",role:"super",allowedRoles:["super","operations"],salt:"d1f3a46b22dc80c457698ddb3d99e22e",passwordHash:"480d418d2dd331b04873e922aff3be3d8726f20b36bc0f1af5e66d37b8f9a4cd"}),
+  Lessured:Object.freeze({id:"admin-lessured",username:"Lessured",role:"operations",allowedRoles:["operations"],salt:"d1f3a46b22dc80c457698ddb3d99e22e",passwordHash:"480d418d2dd331b04873e922aff3be3d8726f20b36bc0f1af5e66d37b8f9a4cd"}),
   Lessures:Object.freeze({id:"admin-lessures",username:"Lessures",role:"super",allowedRoles:["super","operations"],salt:"e0076f303f4652dd66582a418dfb3748",passwordHash:"2e66de9cb42033193325e96825ee931fe735558dfe569faa95ef604815ed39e6"})
 });
 let adminSession=null;
