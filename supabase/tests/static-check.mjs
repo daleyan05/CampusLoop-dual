@@ -57,8 +57,15 @@ function lexicalBalance(source) {
 
 const allSource = files.map((name) => readFileSync(join(migrationDir, name), 'utf8')).join('\n');
 
-check(files.length === 4, 'exactly four ordered migrations are present');
-check(files.every((name, index) => name.startsWith(`20260822000${index + 1}`)), 'migration prefixes are ordered');
+const expectedMigrations = [
+  '202608220001_core.sql',
+  '202608220002_identity_market.sql',
+  '202608220003_tutoring.sql',
+  '202608220004_messaging_payments_safety.sql',
+  '202609030005_fixed_staff_roles.sql',
+];
+check(files.length === expectedMigrations.length, 'exactly five ordered migrations are present');
+check(files.every((name, index) => name === expectedMigrations[index]), 'migration filenames and order match the contract');
 
 for (const name of files) {
   const source = readFileSync(join(migrationDir, name), 'utf8');
