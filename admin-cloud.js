@@ -102,11 +102,17 @@
     name: user.user_metadata?.display_name || user.user_metadata?.name || String(user.email || "CampusLoop 管理员").split("@")[0],
     role: resolvedRole
   } : null;
+  const mappedAuthEmail = (mapping, alias) => {
+    if (!mapping || typeof mapping !== "object") return "";
+    const normalized = String(alias || "").trim().toLowerCase();
+    const entry = Object.entries(mapping).find(([key]) => String(key).trim().toLowerCase() === normalized);
+    return typeof entry?.[1] === "string" ? entry[1].trim().toLowerCase() : "";
+  };
   const resolveLoginEmail = (identifier) => {
     const value = String(identifier || "").trim();
     if (value.includes("@")) return value.toLowerCase();
     const mapping = config.adminAuthEmails;
-    const mapped = mapping && typeof mapping === "object" ? mapping[value] : "";
+    const mapped = mappedAuthEmail(mapping, value);
     if (typeof mapped === "string" && mapped.includes("@")) return mapped.trim().toLowerCase();
     const error = new Error("cloud_identifier_requires_email");
     error.code = "cloud_identifier_requires_email";

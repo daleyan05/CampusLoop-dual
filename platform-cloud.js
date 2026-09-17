@@ -51,10 +51,17 @@
   };
   const requestType = (value) => ({ "论文结构梳理": "essay_structure", "作业辅导": "assignment_support", "语言润色": "language_polish", "课程答疑": "course_tutoring" }[String(value || "").trim()] || String(value || "").trim());
   const billingMode = (value) => ({ "一次性": "one_time", "每小时": "hourly" }[String(value || "").trim()] || String(value || "").trim());
+  const mappedAuthEmail = (mapping, alias) => {
+    if (!mapping || typeof mapping !== "object") return "";
+    const normalized = String(alias || "").trim().toLowerCase();
+    const entry = Object.entries(mapping).find(([key]) => String(key).trim().toLowerCase() === normalized);
+    return typeof entry?.[1] === "string" ? entry[1].trim().toLowerCase() : "";
+  };
   const authEmailForAlias = (alias, kind) => {
     const normalized = String(alias || "").trim().toLowerCase();
     const configuredMap = kind === "mentor" ? config.mentorAuthEmails : config.adminAuthEmails;
-    if (configuredMap && typeof configuredMap === "object" && configuredMap[normalized]) return String(configuredMap[normalized]);
+    const mapped = mappedAuthEmail(configuredMap, normalized);
+    if (mapped) return mapped;
     const domain = String(config.authAccountDomain || "campusloopapp.net").trim().replace(/^@/, "");
     return `${normalized}@${domain}`;
   };
@@ -91,7 +98,7 @@
     const value = String(identifier || "").trim();
     if (value.includes("@")) return value.toLowerCase();
     const mapping = config[`${kind}AuthEmails`];
-    const mapped = mapping && typeof mapping === "object" ? mapping[value] : "";
+    const mapped = mappedAuthEmail(mapping, value);
     if (typeof mapped === "string" && mapped.includes("@")) return mapped.trim().toLowerCase();
     const error = new Error("cloud_identifier_requires_email");
     error.code = "cloud_identifier_requires_email";
